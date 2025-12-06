@@ -15,6 +15,7 @@ import os
 import sys
 import subprocess
 import shutil
+import tempfile
 
 def assert_installed(program: str):
     if shutil.which(program) is None:
@@ -28,7 +29,7 @@ def create_parser():
 Examples:
   kino.py slides
   kino.py --root ./project slides
-  kino.py video --cut none --fps 24 --dpi 600
+  kino.py video --cut none --fps 24 --ppi 150
   kino.py --root ./project revealjs --cut scene --fps 30
 """
     )
@@ -76,14 +77,14 @@ Examples:
         "--fps",
         type=int,
         default=30,
-        help="Frames per second (default: 30)"
+        help="frames per second (default: 30)"
     )
     
     subparent_parser.add_argument(
-        "--dpi",
+        "--ppi",
         type=int,
-        default=300,
-        help="Dots per inch (default: 300)"
+        default=144,
+        help="pixels per inch (default: 144)"
     )
     
     slides_parser.set_defaults(func=handle_slides)
@@ -101,7 +102,7 @@ Examples:
         "--format",
         type=str,
         default="mp4",
-        help="Ouput video format (default: mp4)"
+        help="ouput video format (default: mp4)"
     )
     
     video_parser.set_defaults(func=handle_video)
@@ -121,16 +122,14 @@ Examples:
 
 def handle_slides(args):
     """Handle slides subcommand"""
-    # Normalize root path
-    root = os.path.abspath(args.root)
-    input = args.input
     
     assert_installed("typst")
+
     result = subprocess.run([
         "typst",
         "compile",
-        "--root", root,
-        input,
+        "--root", os.path.abspath(args.root),
+        args.input,
         "--input", "fps=0" 
     ])
     
@@ -138,18 +137,23 @@ def handle_slides(args):
 
 def handle_video(args):
     """Handle video subcommand"""
-    # Normalize root path
-    root_path = os.path.abspath(args.root)
-    
-    print(f"Processing video...")
-    print(f"  Root directory: {root_path}")
-    print(f"  Cut mode: {args.cut}")
-    print(f"  FPS: {args.fps}")
-    print(f"  DPI: {args.dpi}")
-    
-    # Add your video processing logic here
-    # For example:
-    # process_video(root_path, cut_mode=args.cut, fps=args.fps, dpi=args.dpi)
+
+    assert_installed("typst")
+    assert_installed("jq")
+    assert_installed("ffmpeg")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        result = subprocess.run([
+            "typst",
+            "compile",
+            "--root", os.path.abspath(args.root),     
+            "--input", f"fps={args.fps}",
+            args.input,
+            os.path.join(tmpdir, "output{0p}.png"),
+            "--ppi", f"{args.ppi}"
+        ])
+        
+    # TODO option for querying quickly, then cut can be used and then the other programs 
     
     return 0
 
@@ -162,7 +166,7 @@ def handle_revealjs(args):
     print(f"  Root directory: {root_path}")
     print(f"  Cut mode: {args.cut}")
     print(f"  FPS: {args.fps}")
-    print(f"  DPI: {args.dpi}")
+    print(f"  DPI: {args.ppi}")
     
     # Add your reveal.js generation logic here
     # For example:
