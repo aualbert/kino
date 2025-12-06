@@ -1,6 +1,6 @@
 #let _begin = state("begin", false)
 
-#let _stop_blocks = state("stop_blocks", ())
+#let _cut_blocks = state("cut_blocks", ())
 
 #let _time_block = state("time_block", 1)
 #let _time = state("time", 0)
@@ -112,36 +112,72 @@
   _build_mapping(_time_block.get(), name)(_time.get())
 }
 
-#let animation(body, fps: 30) = context {
+#let slideshow(body) = context {
   let variables = _variables.final()
-  let stop_blocks = _stop_blocks.final()
   let max_block = calc.max(..variables.values().join().keys().map(int))
-  let total_frames = 0
+  _time.update(_ => 0)
+  for b in range(1, max_block + 2) {
+    _time_block.update(_ => b)
+    page(body)
+  }
+}
 
-  for b in range(1, max_block + 1) {
-    let duration = calc.max(..variables
-      .values()
-      .map(dict => dict.pairs())
-      .join()
-      .map(pair => {
-        let (bb, (_, ho, du, dw, _)) = pair
-        if bb == str(b) { ho + du + dw } else { 0 }
-      }))
-    let frames = int(calc.round(fps * duration))
-    total_frames += frames
-    //page(width: 300pt, height:300pt)[frames: #frames #debug()]
-    for frame in range(frames) {
-      let time = (duration * frame) / frames
-      //page[#b/#max_block, #(calc.round(time * 1000) / 1000)/#duration]
-      _time.update(_ => time)
+#let animation(body, fps: 5) = {
+  fps = int(sys.inputs.at("fps", default: fps))
+  if fps == 0 {
+    slideshow(body)
+  } else {
+    context {
+      let variables = _variables.final()
+      let cut_blocks = _cut_blocks.final()
+      let max_block = calc.max(..variables.values().join().keys().map(int))
+      if not max_block in cut_blocks {
+        cut_blocks = cut_blocks + (max_block,)
+      }
+
+      let total_frames = 0
+      let local_frames = 0
+      let segment = 0
+
+      for b in range(1, max_block + 1) {
+        let duration = calc.max(..variables
+          .values()
+          .map(dict => dict.pairs())
+          .join()
+          .map(pair => {
+            let (bb, (_, ho, du, dw, _)) = pair
+            if bb == str(b) { ho + du + dw } else { 0 }
+          }))
+
+        let frames = int(calc.round(fps * duration))
+        local_frames += frames
+
+        for frame in range(frames) {
+          let time = (duration * frame) / frames
+          _time.update(_ => time)
+          page(body) //+ place(bottom + right, [#segment])
+        }
+
+        _time_block.update(int => int + 1)
+
+        if b in cut_blocks {
+          metadata((
+            "fps": fps,
+            "duration": duration,
+            "frames": local_frames + 1,
+            "from": total_frames,
+            "segment": segment,
+          ))
+          total_frames += frames
+          local_frames = 0
+          segment += 1
+        }
+      }
+
+      _time.update(_ => 0)
       page(body)
     }
-    metadata(("fps": fps, "duration": duration, "frames": total_frames))
-    total_frames = 0
-    _time_block.update(int => int + 1)
   }
-  _time.update(_ => 0)
-  page(body)
 }
 
 #let init(..args) = context {
@@ -212,10 +248,10 @@
   }
 }
 
-#let stop() = context {
+#let cut() = context {
   if not _begin.get() {
-    let block = _block.get()
-    _stop_blocks.update(array => array + (block,))
+    let block = calc.max(0, _block.get() - 1)
+    _cut_blocks.update(array => array + (block,))
   }
 }
 
@@ -225,7 +261,7 @@
     page(width: 500pt, height: 500pt)[
       block: #_block.get() \
       begin: #_begin.get() \
-      stop blocks: #_stop_blocks.get() \
+      cut blocks: #_cut_blocks.get() \
       duration of last block: #_get_block_duration(calc.max(0, _block.get() - 1)) \
       #_variables.get()
     ]

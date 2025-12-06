@@ -15,6 +15,8 @@
             jq
             ffmpeg
             typst
+            python3
+            mpv
           ];
         };
       });
