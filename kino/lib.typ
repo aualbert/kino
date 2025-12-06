@@ -122,9 +122,52 @@
   }
 }
 
+#let fake(body, fps) = context {
+  let variables = _variables.final()
+  let cut_blocks = _cut_blocks.final()
+  let max_block = calc.max(..variables.values().join().keys().map(int))
+  if not max_block in cut_blocks {
+    cut_blocks = cut_blocks + (max_block,)
+  }
+
+  let total_frames = 0
+  let local_frames = 0
+  let segment = 0
+
+  for b in range(1, max_block + 1) {
+    let duration = calc.max(..variables
+      .values()
+      .map(dict => dict.pairs())
+      .join()
+      .map(pair => {
+        let (bb, (_, ho, du, dw, _)) = pair
+        if bb == str(b) { ho + du + dw } else { 0 }
+      }))
+
+    let frames = int(calc.round(fps * duration))
+    local_frames += frames
+
+    if b in cut_blocks {
+      metadata((
+        "fps": fps,
+        "duration": duration,
+        "frames": local_frames + 1,
+        "from": total_frames,
+        "segment": segment,
+      ))
+      total_frames += frames
+      local_frames = 0
+      segment += 1
+    }
+  }
+  page(body)
+}
+
 #let animation(body, fps: 5) = {
   fps = int(sys.inputs.at("fps", default: fps))
-  if fps == 0 {
+  if int(sys.inputs.at("query", default: 0)) == 1 {
+    fake(body, fps)
+  } else if fps == 0 {
     slideshow(body)
   } else {
     context {
