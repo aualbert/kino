@@ -28,9 +28,9 @@ def create_parser():
         epilog="""
 Examples:
   kino.py slides
-  kino.py --root ./project slides
+  kino.py --timeout 20 slides
   kino.py video --cut none --fps 24 --ppi 150
-  kino.py --root ./project revealjs --cut scene --fps 30
+  kino.py --root ./project revealjs --cut scene
 """
     )
     parser.add_argument(
@@ -39,10 +39,10 @@ Examples:
     )
 
     parser.add_argument(
-        "--cut",
-        choices=["all", "none", "scene"],
-        default="all",
-        help="Processed cuts: 'all', 'none' (no cuts), 'scene' (scene cuts only)"
+        "--timeout",
+        type=int,
+        default=30,
+        help="timeout (default: 30s)"
     )
 
     parser.add_argument(
@@ -72,6 +72,13 @@ Examples:
 
     # create subparent parser
     subparent_parser = argparse.ArgumentParser(add_help=False)
+
+    subparent_parser.add_argument(
+        "--cut",
+        choices=["all", "none", "scene"],
+        default="all",
+        help="cuts to consider (default: all)"
+    )
     
     subparent_parser.add_argument(
         "--fps",
@@ -125,13 +132,11 @@ def handle_slides(args):
     
     assert_installed("typst")
 
-    result = subprocess.run([
-        "typst",
-        "compile",
-        "--root", os.path.abspath(args.root),
-        args.input,
-        "--input", "fps=0" 
-    ])
+    cmd = ["typst", "compile", args.input, "--input", "fps=0"]
+    if not args.root is None:
+        cmd += ["--root", os.path.abspath(args.root)]
+        
+    result = subprocess.run(cmd, timeout = args.timeout)
     
     return result.returncode
 
@@ -142,25 +147,48 @@ def handle_video(args):
     assert_installed("jq")
     assert_installed("ffmpeg")
 
+    rootpath, _ = os.path.splitext(args.input)
+    output = f"{rootpath}.{args.format}"
+    
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = subprocess.run([
+
+        cmd1 = [
             "typst",
             "compile",
-            "--root", os.path.abspath(args.root),     
             "--input", f"fps={args.fps}",
             args.input,
             os.path.join(tmpdir, "output{0p}.png"),
             "--ppi", f"{args.ppi}"
-        ])
+        ]
+        if not args.root is None:
+            cmd1 += ["--root", os.path.abspath(args.root)]    
+
+        if args.cut == "none":
+            cmd2 = [
+                "ffmpeg",
+                "-y",
+                "-r", f"{args.fps}",
+                "-pattern_type", "glob", 
+                "-i", f"{os.path.join(tmpdir, "output*.png")}",
+                "-r", f"{args.fps}",
+                output
+            ]
+        else:
+            cmd2 = [
+                "ffmpeg",
+                "-h"
+            ] #TODO
         
-    # TODO option for querying quickly, then cut can be used and then the other programs 
+        result = subprocess.run(cmd1, timeout = args.timeout)    
+        if result.returncode != 0:
+            return result
+        
+        result = subprocess.run(cmd2, timeout = args.timeout, capture_output=True)
     
     return 0
 
 def handle_revealjs(args):
     """Handle revealjs subcommand"""
-    # Normalize root path
-    root_path = os.path.abspath(args.root)
     
     print(f"Generating reveal.js presentation...")
     print(f"  Root directory: {root_path}")
