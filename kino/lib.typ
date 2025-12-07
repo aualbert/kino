@@ -1,6 +1,7 @@
 #let _begin = state("begin", false)
 
 #let _cut_blocks = state("cut_blocks", ())
+#let _loop_blocks = state("loop_blocks", ())
 
 #let _time_block = state("time_block", 1)
 #let _time = state("time", 0)
@@ -29,15 +30,17 @@
 }
 
 #let _get_block_duration(block) = {
-  calc.max(.._variables
-    .get()
-    .values()
-    .map(dict => dict.pairs())
-    .join()
-    .map(pair => {
-      let (b, (_, ho, du, dw, _)) = pair
-      if b == str(block) { ho + du + dw } else { 0 }
-    }))
+  calc.max(
+    .._variables
+      .get()
+      .values()
+      .map(dict => dict.pairs())
+      .join()
+      .map(pair => {
+        let (b, (_, ho, du, dw, _)) = pair
+        if b == str(block) { ho + du + dw } else { 0 }
+      }),
+  )
 }
 
 #let _get_duration() = {
@@ -127,6 +130,7 @@
 #let fake(body, fps) = context {
   let variables = _variables.final()
   let cut_blocks = _cut_blocks.final()
+  let loop_blocks = _loop_blocks.final()
   let max_block = calc.max(..variables.values().join().keys().map(int))
   if not max_block in cut_blocks {
     cut_blocks = cut_blocks + (max_block,)
@@ -137,14 +141,16 @@
   let segment = 0
 
   for b in range(1, max_block + 1) {
-    let duration = calc.max(..variables
-      .values()
-      .map(dict => dict.pairs())
-      .join()
-      .map(pair => {
-        let (bb, (_, ho, du, dw, _)) = pair
-        if bb == str(b) { ho + du + dw } else { 0 }
-      }))
+    let duration = calc.max(
+      ..variables
+        .values()
+        .map(dict => dict.pairs())
+        .join()
+        .map(pair => {
+          let (bb, (_, ho, du, dw, _)) = pair
+          if bb == str(b) { ho + du + dw } else { 0 }
+        }),
+    )
 
     let frames = int(calc.round(fps * duration))
     local_frames += frames
@@ -156,6 +162,7 @@
         "frames": local_frames + 1,
         "from": total_frames,
         "segment": segment,
+        "loop": b in loop_blocks,
       ))
       total_frames += frames
       local_frames = 0
@@ -175,6 +182,7 @@
     context {
       let variables = _variables.final()
       let cut_blocks = _cut_blocks.final()
+      let loop_blocks = _loop_blocks.final()
       let max_block = calc.max(..variables.values().join().keys().map(int))
       if not max_block in cut_blocks {
         cut_blocks = cut_blocks + (max_block,)
@@ -185,14 +193,16 @@
       let segment = 0
 
       for b in range(1, max_block + 1) {
-        let duration = calc.max(..variables
-          .values()
-          .map(dict => dict.pairs())
-          .join()
-          .map(pair => {
-            let (bb, (_, ho, du, dw, _)) = pair
-            if bb == str(b) { ho + du + dw } else { 0 }
-          }))
+        let duration = calc.max(
+          ..variables
+            .values()
+            .map(dict => dict.pairs())
+            .join()
+            .map(pair => {
+              let (bb, (_, ho, du, dw, _)) = pair
+              if bb == str(b) { ho + du + dw } else { 0 }
+            }),
+        )
 
         let frames = int(calc.round(fps * duration))
         local_frames += frames
@@ -212,6 +222,7 @@
             "frames": local_frames + 1,
             "from": total_frames,
             "segment": segment,
+            "loop": b in loop_blocks,
           ))
           total_frames += frames
           local_frames = 0
@@ -293,10 +304,11 @@
   }
 }
 
-#let cut() = context {
+#let cut(loop: false) = context {
   if not _begin.get() {
     let block = calc.max(0, _block.get() - 1)
     _cut_blocks.update(array => array + (block,))
+    if loop { _loop_blocks.update(array => array + (block,)) }
   }
 }
 

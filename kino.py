@@ -335,8 +335,8 @@ def handle_revealjs(args):
                     ]
                     
                     result = subprocess.run(cmd, timeout = args.timeout, check = True)
-
-                    content += f"\n<section data-background-video=\"{video_to_data_uri(output)[0]}\" data-background-size=\"contain\"></section>"
+                    
+                    content += f"\n<section data-background-video=\"{video_to_data_uri(output)[0]}\" data-background-size=\"contain\" {"data-background-video-loop" if item["loop"] else ""}></section>"
                     uris.append(video_to_data_uri(output))
 
                 navigation = "default"

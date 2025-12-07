@@ -7,13 +7,20 @@
 #animate(x: 100%)
 #cut()
 #animate(hold: 1, x: 10%)
+#cut(loop: true)
 #animate(d: 100%)
 
 #context {
-  polygon(fill: blue.darken(a("d")), (0cm, 0cm), (a("x"), 0cm), (a("x"), 3cm), (
-    0cm,
-    a("y"),
-  ))
+  polygon(
+    fill: blue.darken(a("d")),
+    (0cm, 0cm),
+    (a("x"), 0cm),
+    (a("x"), 3cm),
+    (
+      0cm,
+      a("y"),
+    ),
+  )
 }
 
 #finish()
