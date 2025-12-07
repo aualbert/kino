@@ -128,6 +128,13 @@ Examples:
     )
 
     revealjs_parser.add_argument(
+        "--progress",
+        action=argparse.BooleanOptionalAction,
+        default =  False,
+        help="display a progress bar"
+    )
+
+    revealjs_parser.add_argument(
         "--template",
         type=str,
         default="revealjs.html",
@@ -336,7 +343,8 @@ def handle_revealjs(args):
 
             parameters = {"title": title,
                           "content": content,
-                          "navigation": navigation}
+                          "navigation": navigation,
+                          "progress": "true" if args.progress else "false"}
             
             with open(args.template, 'r') as f:
                 template = Template(f.read())

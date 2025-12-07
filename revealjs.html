@@ -6,14 +6,14 @@
          name="viewport"
          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
       />
-      <title>$title</title>
+      <title>${title}</title>
       <link rel="stylesheet" href="dist/reveal.css" />
       <link rel="stylesheet" href="dist/theme/white.css" />
    </head>
    <body>
       <div class="reveal">
          <div class="slides">
-         $content
+         ${content}
          </div>
       </div>
       <script src="dist/reveal.js"></script>
@@ -22,7 +22,8 @@
          Reveal.initialize({
             hash: true,
             backgroundTransition: "none",
-            navigationMode: "$navigation",
+            navigationMode: "${navigation}",
+            progress: ${progress},
             keyboard: {
                32: () => {
                var currentVideos = Reveal.getCurrentSlide().slideBackgroundContentElement.getElementsByTagName("video");
