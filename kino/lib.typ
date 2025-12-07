@@ -10,7 +10,9 @@
 #let _variables = state("variables", ("builtin_pause_counter": _default_dict))
 
 #let finish() = context {
-  _begin.update(_ => true)
+  if not _begin.get() {
+    _begin.update(_ => true)
+  }
 }
 
 #let _add_anim(block, hold, duration, dwell, transition, name, value) = {
@@ -163,8 +165,8 @@
   page(body)
 }
 
-#let animation(body, fps: 5) = {
-  fps = int(sys.inputs.at("fps", default: fps))
+#let animation(body, fps: -1) = {
+  if fps < 0 { fps = int(sys.inputs.at("fps", default: 5)) }
   if int(sys.inputs.at("query", default: 0)) == 1 {
     fake(body, fps)
   } else if fps == 0 {

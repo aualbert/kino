@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-# ❯ typst compile --root . examples/ex.typ --input fps=10 output/{0p}.png
-# typst query --root . examples/ex.typ --input fps=10 metadata --field value | jq -r '.[] | "ffmpeg -y -pattern_type glob -i \"output/*.png\" -vf \"select='"'"'gte(n,\(.from))'"'"'\" -frames:v \(.frames) -r \(.fps) output/\(.segment).mp4"' | while read cmd; do
-# 	eval "$cmd"
-# done
-# TODO input option for faster query 
 # TODO command to take all video in order and put them in a reveal js
 #  typst query --root . --input fps=1 examples/ex.typ metadata --field value | jq
 # ffmpeg -pattern_type glob -i "*.png" -vf "select='gte(n,2)'" -frames:v 2 -r 3 output.mp4
@@ -16,6 +11,7 @@ import sys
 import subprocess
 import shutil
 import tempfile
+import json
 
 def assert_installed(program: str):
     if shutil.which(program) is None:
@@ -133,18 +129,26 @@ def handle_slides(args):
     assert_installed("typst")
 
     cmd = ["typst", "compile", args.input, "--input", "fps=0"]
-    if not args.root is None:
+    if args.root is not None:
         cmd += ["--root", os.path.abspath(args.root)]
+
+    try:    
+        subprocess.run(cmd, timeout = args.timeout)
         
-    result = subprocess.run(cmd, timeout = args.timeout)
+    except subprocess.TimeoutExpired:
+        print(f"Timeout after {args.timeout} seconds.\nhint: timeout can be increased using the --timeout option.")
+        return 124
+        
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return 1
     
-    return result.returncode
+    return 0
 
 def handle_video(args):
     """Handle video subcommand"""
 
     assert_installed("typst")
-    assert_installed("jq")
     assert_installed("ffmpeg")
 
     rootpath, _ = os.path.splitext(args.input)
@@ -160,45 +164,77 @@ def handle_video(args):
             os.path.join(tmpdir, "output{0p}.png"),
             "--ppi", f"{args.ppi}"
         ]
-        if not args.root is None:
-            cmd1 += ["--root", os.path.abspath(args.root)]    
+        if args.root is not None:
+            cmd1 += ["--root", os.path.abspath(args.root)] 
 
-        if args.cut == "none":
-            cmd2 = [
-                "ffmpeg",
-                "-y",
-                "-r", f"{args.fps}",
-                "-pattern_type", "glob", 
-                "-i", f"{os.path.join(tmpdir, "output*.png")}",
-                "-r", f"{args.fps}",
-                output
-            ]
-        else:
-            cmd2 = [
-                "ffmpeg",
-                "-h"
-            ] #TODO
+        try:    
+            subprocess.run(cmd1, timeout = args.timeout, check = True)
+
+            if args.cut == "none":
+                cmd2 = [
+                    "ffmpeg",
+                    "-y",
+                    "-loglevel", "error",
+                    "-r", f"{args.fps}",
+                    "-pattern_type", "glob", 
+                    "-i", f"{os.path.join(tmpdir, "output*.png")}",
+                    "-r", f"{args.fps}",
+                    output
+                ]
+
+                subprocess.run(cmd2, timeout = args.timeout)
+
+            elif args.cut == "all":
+                cmd2 = [
+                    "typst",
+                    "query",
+                    args.input,
+                    "--input", f"fps={args.fps}",
+                    "--input", "query=1",
+                    "metadata", 
+                    "--field", "value"
+                ]
+                if args.root is not None:
+                    cmd2 += ["--root", os.path.abspath(args.root)] 
+
+                result = subprocess.run(cmd2, timeout = args.timeout, capture_output=True, text=True, check = True)
+                data = json.loads(result.stdout)
+
+                # Generate ffmpeg commands
+                ffmpeg_commands = []
+                for item in data:
+                    output = f"{rootpath}{item['segment']}.{args.format}"
+                    cmd = [
+                        "ffmpeg",
+                        "-y",                        
+                        "-loglevel", "error",
+                        "-r", str(item['fps']),
+                        "-pattern_type", "glob",
+                        "-i", f"{os.path.join(tmpdir, "output*.png")}",
+                        "-vf", f"select='gte(n,{item['from']})'",
+                        "-frames:v", str(item['frames']),
+                        "-r", str(item['fps']),
+                        output
+                    ]
+                    ffmpeg_commands.append(cmd)
+
+                    result = subprocess.run(cmd, timeout = args.timeout, check = True)
+                         
+        except subprocess.TimeoutExpired:
+            print(f"Timeout after {args.timeout} seconds.\nhint: timeout can be increased using the --timeout option.")
+            return 124
+
+        except subprocess.CalledProcessError:
+            print("The above exception was raised during conversion.")
         
-        result = subprocess.run(cmd1, timeout = args.timeout)    
-        if result.returncode != 0:
-            return result
-        
-        result = subprocess.run(cmd2, timeout = args.timeout, capture_output=True)
-    
-    return 0
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            return 1
+
+        return 0
 
 def handle_revealjs(args):
     """Handle revealjs subcommand"""
-    
-    print(f"Generating reveal.js presentation...")
-    print(f"  Root directory: {root_path}")
-    print(f"  Cut mode: {args.cut}")
-    print(f"  FPS: {args.fps}")
-    print(f"  DPI: {args.ppi}")
-    
-    # Add your reveal.js generation logic here
-    # For example:
-    # generate_revealjs(root_path, cut_mode=args.cut, fps=args.fps, dpi=args.dpi)
     
     return 0
 

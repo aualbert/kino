@@ -12,10 +12,11 @@
       {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            jq
             ffmpeg
             typst
+            typstyle
             python3
+            ruff
             mpv
           ];
         };
