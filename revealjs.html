@@ -1,1 +1,86 @@
+<!doctype html>
+<html>
+   <head>
+      <meta charset="utf-8" />
+      <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      />
+      <title>$title</title>
+      <link rel="stylesheet" href="dist/reveal.css" />
+      <link rel="stylesheet" href="dist/theme/white.css" />
+   </head>
+   <body>
+      <div class="reveal">
+         <div class="slides">
+         $content
+         </div>
+      </div>
+      <script src="dist/reveal.js"></script>
 
+      <script>
+         Reveal.initialize({
+            hash: true,
+            backgroundTransition: "none",
+            navigationMode: "$navigation",
+            keyboard: {
+               32: () => {
+               var currentVideos = Reveal.getCurrentSlide().slideBackgroundContentElement.getElementsByTagName("video");
+               if (currentVideos.length > 0) {
+                  if (currentVideos[0].ended) {
+                     Reveal.next();
+                  } else {
+                     if (currentVideos[0].paused == true) currentVideos[0].play();
+                     else currentVideos[0].pause();
+                  }
+               } else {
+                  Reveal.next();
+               }
+               }
+            }
+         });
+
+         function setVideoBase64(video) {
+            const sources = video.querySelectorAll("source");
+            // Update the source of the video
+            sources.forEach((source, i) => {
+               const src = source.getAttribute("src");
+               if (src.match(/^data:video.*;base64$$/)) {
+                  const nextSrc = sources[i + 1]?.getAttribute("src");
+                  video.setAttribute("src", `$${src},$${nextSrc}`);
+               }
+            });
+         }
+
+         function fixBase64VideoBackground(event) {
+            // Analyze all slides backgrounds
+            for (const slide of Reveal.getBackgroundsElement().querySelectorAll(
+               ".slide-background",
+            )) {
+               // Get the slide video and its sources for each background
+               const video = slide.querySelector("video");
+               if (video) {
+                  setVideoBase64(video);
+               } else {
+                  // Listen to the creation of the video element
+                  const observer = new MutationObserver((mutationsList) => {
+                     for (const mutation of mutationsList) {
+                        if (mutation.type === "childList") {
+                           for (const addedNode of mutation.addedNodes) {
+                              if (addedNode.tagName === "VIDEO") {
+                                 setVideoBase64(addedNode);
+                                 observer.disconnect(); // Stop observing once the video is handled
+                              }
+                           }
+                        }
+                     }
+                  });
+                  observer.observe(slide, { childList: true, subtree: true });
+               }
+            }
+         }
+         // Setup base64 videos
+         Reveal.on("ready", fixBase64VideoBackground);
+      </script>
+   </body>
+</html>

@@ -4,7 +4,6 @@
 #  typst query --root . --input fps=1 examples/ex.typ metadata --field value | jq
 # ffmpeg -pattern_type glob -i "*.png" -vf "select='gte(n,2)'" -frames:v 2 -r 3 output.mp4
 
-
 import argparse
 import os
 import sys
@@ -12,6 +11,9 @@ import subprocess
 import shutil
 import tempfile
 import json
+import base64
+import mimetypes
+from string import Template
 
 def assert_installed(program: str):
     if shutil.which(program) is None:
@@ -119,6 +121,19 @@ Examples:
         parents=[subparent_parser]
     )
 
+    revealjs_parser.add_argument(
+        "--title",
+        type=str,
+        help="title of the presentation"
+    )
+
+    revealjs_parser.add_argument(
+        "--template",
+        type=str,
+        default="revealjs.html",
+        help="revealjs template"
+    )
+
     revealjs_parser.set_defaults(func=handle_revealjs)
     
     return parser
@@ -200,7 +215,6 @@ def handle_video(args):
                 result = subprocess.run(cmd2, timeout = args.timeout, capture_output=True, text=True, check = True)
                 data = json.loads(result.stdout)
 
-                # Generate ffmpeg commands
                 ffmpeg_commands = []
                 for item in data:
                     output = f"{rootpath}{item['segment']}.{args.format}"
@@ -217,7 +231,7 @@ def handle_video(args):
                         output
                     ]
                     ffmpeg_commands.append(cmd)
-
+                    
                     result = subprocess.run(cmd, timeout = args.timeout, check = True)
                          
         except subprocess.TimeoutExpired:
@@ -236,7 +250,127 @@ def handle_video(args):
 def handle_revealjs(args):
     """Handle revealjs subcommand"""
     
-    return 0
+    assert_installed("typst")
+    assert_installed("ffmpeg")
+
+    rootpath, _ = os.path.splitext(args.input)
+    prespath = f"{rootpath}.html"
+    title = args.title
+    if title is None:
+        title = os.path.splitext(os.path.basename(args.input))[0]
+   
+    with tempfile.TemporaryDirectory() as tmpdir:
+
+        cmd1 = [
+            "typst",
+            "compile",
+            "--input", f"fps={args.fps}",
+            args.input,
+            os.path.join(tmpdir, "output{0p}.png"),
+            "--ppi", f"{args.ppi}"
+        ]
+        if args.root is not None:
+            cmd1 += ["--root", os.path.abspath(args.root)] 
+
+        try:    
+            subprocess.run(cmd1, timeout = args.timeout, check = True)
+            
+            if args.cut == "none":
+                output = os.path.join(tmpdir, "segment.mp4")
+                cmd2 = [
+                    "ffmpeg",
+                    "-y",
+                    "-loglevel", "error",
+                    "-r", f"{args.fps}",
+                    "-pattern_type", "glob", 
+                    "-i", f"{os.path.join(tmpdir, "output*.png")}",
+                    "-r", f"{args.fps}",
+                    output
+                ]
+
+                subprocess.run(cmd2, timeout = args.timeout)
+
+                content = f"<section data-background-video=\"{video_to_data_uri(output)[0]}\" data-background-size=\"contain\"></section>"
+                navigation = "default"
+
+            elif args.cut == "all":
+                cmd2 = [
+                    "typst",
+                    "query",
+                    args.input,
+                    "--input", f"fps={args.fps}",
+                    "--input", "query=1",
+                    "metadata", 
+                    "--field", "value"
+                ]
+                if args.root is not None:
+                    cmd2 += ["--root", os.path.abspath(args.root)] 
+
+                result = subprocess.run(cmd2, timeout = args.timeout, capture_output=True, text=True, check = True)
+                data = json.loads(result.stdout)
+
+                uris = []
+                content = ""
+
+                for item in data:
+                    output = os.path.join(tmpdir, f"segment{item['segment']}.mp4")
+                    cmd = [
+                        "ffmpeg",
+                        "-y",                        
+                        "-loglevel", "error",
+                        "-r", str(item['fps']),
+                        "-pattern_type", "glob",
+                        "-i", f"{os.path.join(tmpdir, "output*.png")}",
+                        "-vf", f"select='gte(n,{item['from']})'",
+                        "-frames:v", str(item['frames']),
+                        "-r", str(item['fps']),
+                        output
+                    ]
+                    
+                    result = subprocess.run(cmd, timeout = args.timeout, check = True)
+
+                    content += f"\n<section data-background-video=\"{video_to_data_uri(output)[0]}\" data-background-size=\"contain\"></section>"
+                    uris.append(video_to_data_uri(output))
+
+                navigation = "default"
+
+            parameters = {"title": title,
+                          "content": content,
+                          "navigation": navigation}
+            
+            with open(args.template, 'r') as f:
+                template = Template(f.read())
+                result = template.substitute(parameters)
+            with open(prespath, 'w') as f:
+                f.write(result)
+                       
+        except subprocess.TimeoutExpired:
+            print(f"Timeout after {args.timeout} seconds.\nhint: timeout can be increased using the --timeout option.")
+            return 124
+
+        except subprocess.CalledProcessError:
+            print("The above exception was raised during conversion.")
+        
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            return 1
+
+        return 0
+
+def video_to_data_uri(video_path):
+    """Convert video file to data URI"""
+    # Get MIME type
+    mime_type, _ = mimetypes.guess_type(video_path)
+    if not mime_type:
+        mime_type = 'video/mp4'  # Default fallback
+    # Read and encode video
+    with open(video_path, 'rb') as video_file:
+        video_data = video_file.read()
+    # Base64 encode
+    base64_data = base64.b64encode(video_data).decode('utf-8')
+    # Create data URI
+    data_uri = f"data:{mime_type};base64,{base64_data}"
+    return data_uri, len(video_data)
 
 def main():
     parser = create_parser()
