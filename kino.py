@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 
-# TODO command to take all video in order and put them in a reveal js
-#  typst query --root . --input fps=1 examples/ex.typ metadata --field value | jq
-# ffmpeg -pattern_type glob -i "*.png" -vf "select='gte(n,2)'" -frames:v 2 -r 3 output.mp4
-
-import argparse
-import os
-import sys
-import subprocess
-import shutil
-import tempfile
-import json
-import base64
-import mimetypes
+from pypdf import PdfWriter
 from string import Template
+import argparse
+import base64
+import json
+import mimetypes
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import tomllib
 
 def assert_installed(program: str):
     if shutil.which(program) is None:
@@ -149,13 +147,43 @@ def handle_slides(args):
     """Handle slides subcommand"""
     
     assert_installed("typst")
+    
+    # TODO make a list of files to compile and send the write inout, match input name either toml or .typ
+    scenes = []
 
-    cmd = ["typst", "compile", args.input, "--input", "fps=0"]
-    if args.root is not None:
-        cmd += ["--root", os.path.abspath(args.root)]
+    dir_path = os.path.dirname(args.input)
+    root_path, ext = os.path.splitext(args.input)
 
-    try:    
-        subprocess.run(cmd, timeout = args.timeout)
+    if ext == ".toml":
+        with open(args.input, 'rb') as f:
+            data = tomllib.load(f)
+            scenes = data["scenes"] 
+    else:
+        scenes.append(args.input)
+
+    total_scenes = len(scenes)
+
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            merger = PdfWriter()
+            for index, input in enumerate(scenes):
+                output = os.path.join(tmpdir, f"output{index}.pdf")
+                cmd = [
+                    "typst",
+                    "compile",
+                    os.path.join(dir_path, input),
+                    "--input", "fps=0",
+                    "--input", f"scene={index+1}",
+                    "--input", f"total_scenes={total_scenes}",
+                    output
+                ]
+                if args.root is not None:
+                    cmd += ["--root", os.path.abspath(args.root)]
+    
+                subprocess.run(cmd, timeout = args.timeout)
+
+                merger.append(output)
+            merger.write(f"{root_path}.pdf")
         
     except subprocess.TimeoutExpired:
         print(f"Timeout after {args.timeout} seconds.\nhint: timeout can be increased using the --timeout option.")
@@ -166,6 +194,9 @@ def handle_slides(args):
         return 1
     
     return 0
+
+def concat_pdfs():
+    pass # TODO
 
 def handle_video(args):
     """Handle video subcommand"""
