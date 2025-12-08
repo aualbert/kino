@@ -148,7 +148,6 @@ def handle_slides(args):
     
     assert_installed("typst")
     
-    # TODO make a list of files to compile and send the write inout, match input name either toml or .typ
     scenes = []
 
     dir_path = os.path.dirname(args.input)
@@ -165,7 +164,9 @@ def handle_slides(args):
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
+
             merger = PdfWriter()
+
             for index, input in enumerate(scenes):
                 output = os.path.join(tmpdir, f"output{index}.pdf")
                 cmd = [
@@ -195,33 +196,45 @@ def handle_slides(args):
     
     return 0
 
-def concat_pdfs():
-    pass # TODO
-
 def handle_video(args):
     """Handle video subcommand"""
 
     assert_installed("typst")
     assert_installed("ffmpeg")
 
-    rootpath, _ = os.path.splitext(args.input)
-    output = f"{rootpath}.{args.format}"
-    
-    with tempfile.TemporaryDirectory() as tmpdir:
+    scenes = []
 
-        cmd1 = [
-            "typst",
-            "compile",
-            "--input", f"fps={args.fps}",
-            args.input,
-            os.path.join(tmpdir, "output{0p}.png"),
-            "--ppi", f"{args.ppi}"
-        ]
-        if args.root is not None:
-            cmd1 += ["--root", os.path.abspath(args.root)] 
+    dir_path = os.path.dirname(args.input)
+    root_path, ext = os.path.splitext(args.input)
+    output = f"{root_path}.{args.format}"
 
-        try:    
-            subprocess.run(cmd1, timeout = args.timeout, check = True)
+    if ext == ".toml":
+        with open(args.input, 'rb') as f:
+            data = tomllib.load(f)
+            scenes = data["scenes"] 
+    else:
+        scenes.append(args.input)
+
+    total_scenes = len(scenes)
+
+    try:    
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            for index, input in enumerate(scenes):
+                cmd1 = [
+                    "typst",
+                    "compile",
+                    "--input", f"fps={args.fps}",            
+                    "--input", f"scene={index+1}",
+                    "--input", f"total_scenes={total_scenes}",
+                    os.path.join(dir_path, input),
+                    os.path.join(tmpdir, f"output{index}_"+"{0p}.png"),
+                    "--ppi", f"{args.ppi}"
+                ]
+                if args.root is not None:
+                    cmd1 += ["--root", os.path.abspath(args.root)] 
+
+                subprocess.run(cmd1, timeout = args.timeout, check = True)
 
             if args.cut == "none":
                 cmd2 = [
@@ -234,56 +247,75 @@ def handle_video(args):
                     "-r", f"{args.fps}",
                     output
                 ]
-
                 subprocess.run(cmd2, timeout = args.timeout)
 
-            elif args.cut == "all":
-                cmd2 = [
-                    "typst",
-                    "query",
-                    args.input,
-                    "--input", f"fps={args.fps}",
-                    "--input", "query=1",
-                    "metadata", 
-                    "--field", "value"
-                ]
-                if args.root is not None:
-                    cmd2 += ["--root", os.path.abspath(args.root)] 
-
-                result = subprocess.run(cmd2, timeout = args.timeout, capture_output=True, text=True, check = True)
-                data = json.loads(result.stdout)
-
-                ffmpeg_commands = []
-                for item in data:
-                    output = f"{rootpath}{item['segment']}.{args.format}"
-                    cmd = [
+            elif args.cut == "scene":
+                for index, input in enumerate(scenes):
+                    output = f"{root_path}{index+1}.{args.format}"
+                    cmd2 = [
                         "ffmpeg",
-                        "-y",                        
+                        "-y",
                         "-loglevel", "error",
-                        "-r", str(item['fps']),
-                        "-pattern_type", "glob",
-                        "-i", f"{os.path.join(tmpdir, "output*.png")}",
-                        "-vf", f"select='gte(n,{item['from']})'",
-                        "-frames:v", str(item['frames']),
-                        "-r", str(item['fps']),
+                        "-r", f"{args.fps}",
+                        "-pattern_type", "glob", 
+                        "-i", f"{os.path.join(tmpdir, f"output{index}_*.png")}",
+                        "-r", f"{args.fps}",
                         output
                     ]
-                    ffmpeg_commands.append(cmd)
+                    subprocess.run(cmd2, timeout = args.timeout)
+
+            elif args.cut == "all":
+                for index, input in enumerate(scenes):
+                    cmd2 = [
+                        "typst",
+                        "query",                        
+                        os.path.join(dir_path, input),
+                        "--input", f"fps={args.fps}",
+                        "--input", f"scene={index+1}",
+                        "--input", f"total_scenes={total_scenes}",
+                        "--input", "query=1",
+                        "metadata", 
+                        "--field", "value"
+                    ]
+                    if args.root is not None:
+                        cmd2 += ["--root", os.path.abspath(args.root)] 
+
+                    result = subprocess.run(cmd2, timeout = args.timeout, capture_output=True, text=True, check = True)
+                    data = json.loads(result.stdout)
+
+                    ffmpeg_commands = []
+                    for item in data:
+                        output = f"{root_path}{index+1}_{item['segment']}.{args.format}"
+                        if total_scenes == 1:
+                            output = f"{root_path}{item['segment']}.{args.format}"
+                        cmd = [
+                            "ffmpeg",
+                            "-y",                        
+                            "-loglevel", "error",
+                            "-r", str(item['fps']),
+                            "-pattern_type", "glob",
+                            "-i", f"{os.path.join(tmpdir, f"output{index}_*.png")}",
+                            "-vf", f"select='gte(n,{item['from']})'",
+                            "-frames:v", str(item['frames']),
+                            "-r", str(item['fps']),
+                            output
+                        ]
+                        ffmpeg_commands.append(cmd)
                     
-                    result = subprocess.run(cmd, timeout = args.timeout, check = True)
+                        result = subprocess.run(cmd, timeout = args.timeout, check = True)
                          
-        except subprocess.TimeoutExpired:
-            print(f"Timeout after {args.timeout} seconds.\nhint: timeout can be increased using the --timeout option.")
-            return 124
+    except subprocess.TimeoutExpired:
+        print(f"Timeout after {args.timeout} seconds.\nhint: timeout can be increased using the --timeout option.")
+        return 124
 
-        except subprocess.CalledProcessError:
-            print("The above exception was raised during conversion.")
+    except subprocess.CalledProcessError:
+        print("The above exception was raised during conversion.")
         
-        except Exception as e:
-            print(f"Unexpected error: {e}")
-            return 1
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return 1
 
-        return 0
+    return 0
 
 def handle_revealjs(args):
     """Handle revealjs subcommand"""
