@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "pypdf"
+# ]
+# ///
 
 from pypdf import PdfWriter
 from string import Template
@@ -158,7 +163,7 @@ def handle_slides(args):
             data = tomllib.load(f)
             scenes = data["scenes"] 
     else:
-        scenes.append(args.input)
+        scenes.append(os.path.basename(args.input))
 
     total_scenes = len(scenes)
 
@@ -213,7 +218,7 @@ def handle_video(args):
             data = tomllib.load(f)
             scenes = data["scenes"] 
     else:
-        scenes.append(args.input)
+        scenes.append(os.path.basename(args.input))
 
     total_scenes = len(scenes)
 
@@ -336,7 +341,7 @@ def handle_revealjs(args):
             data = tomllib.load(f)
             scenes = data["scenes"] 
     else:
-        scenes.append(args.input)
+        scenes.append(os.path.basename(args.input))
 
     total_scenes = len(scenes)
    
