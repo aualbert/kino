@@ -1,19 +1,13 @@
 #import "../kino/lib.typ": *
 #set page(width: 100pt, height: 100pt)
 
-//#show: animation
+#show: animation
 
-#init(x: 1pt)
+#init(x: 5pt)
 
-#let f(x) = 2 * x
-#animate(hold: 1, dwell: 1, x: 2pt)
-#then(x: 5pt, transition: f)
-#animate(x: 20pt)
-#animate(y: 2cm)
-#animate(y: 1cm)
-#animate(y: 2cm)
+#animate(hold: 1, dwell: 1, x: 50pt)
+#then(x: 100pt)
 
-#page(width: 30cm, height: 10cm)[ #show-timeline()]
 
 #context {
   polygon(

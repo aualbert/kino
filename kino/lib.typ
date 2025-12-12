@@ -13,7 +13,7 @@
 #let _block = state("block", 1)
 
 #let _get_default_dict(type: 0%) = {
-  return ("0": ((type * 0%, 0, 1, 0, "linear"),))
+  ("0": ((type * 0%, 0, 1, 0, "linear"),))
 }
 
 #let _variables = state("variables", (
@@ -30,6 +30,11 @@
 #let _add_anim(block, hold, duration, dwell, transition, name, value) = {
   _variables.update(dict => {
     let name_dict = dict.at(name, default: _get_default_dict(type: value))
+    // TODO move assert out of update
+    assert(
+      type(value) == type(name_dict.at("0").at(0).at(0)),
+      message: "Cannot modify the type of an animated variable.",
+    )
     let block_list = name_dict.at(str(block), default: ())
     block_list.push((value, hold, duration, dwell, transition))
     name_dict.insert(str(block), block_list)
@@ -64,14 +69,10 @@
       .map(dict => dict.pairs())
       .join()
       .map(pair => {
-        // let (b, (_, ho, du, dw, _)) = pair
-        // if b == str(block) { ho + du + dw } else { 0 }
         let (b, l) = pair
         if b != str(block) { 0 } else {
-          calc.max(..l.map(e => {
-            let (_, ho, du, dw, _) = e
-            ho + du + dw
-          }))
+          let (_, ho, du, dw, _) = l.at(-1)
+          ho + du + dw
         }
       }),
   )
@@ -89,22 +90,19 @@
   duration
 }
 
-// Move color to sub box
-#let hl(content, width, color: yellow) = box(
-  content,
-  width: width - 2pt,
-  clip: true,
+#let _bar(width, color: none) = box(
+  [\ ],
+  width: width * 25pt,
   radius: 2pt,
   fill: color,
 )
 
-// TODO
 #let _show-timeline(timeline) = {
   if not _begin.get() {
     let mblock = _get_max_block_var(timeline)
     grid(
       columns: mblock + 1,
-      align: center + bottom,
+      align: left + bottom,
       inset: 3pt,
       [],
       grid.vline(stroke: (dash: "dashed")),
@@ -121,18 +119,16 @@
             (
               (k,)
                 + range(1, mblock + 1).map(b => {
-                  (
-                    name_dict
-                      .at(str(b), default: ())
-                      .map(e => {
-                        let (v, ho, du, dw, t) = e
-                        hl([#[#t]], (ho + du + dw) * .3cm + 1cm)
-                        h(2pt)
-                        [#v]
-                        h(2pt)
-                      })
-                      .join()
-                  )
+                  let total = 0
+                  let res = ()
+                  for e in name_dict.at(str(b), default: ()) {
+                    let (v, ho, du, dw, t) = e
+                    res += (
+                      [#_bar(ho - total)#_bar(du, color: blue)#_bar(dw)],
+                    )
+                    total += ho + du + dw
+                  }
+                  res.join()
                 })
             )
           },
@@ -154,6 +150,7 @@
   let mapping(time) = {
     let name_dict = _variables.get().at(name, default: _get_default_dict())
     let end = block
+    // No, it might start in the same block but in the element before (if there is an element before then )
     let start = block - 1
     while not str(start) in name_dict.keys() {
       start -= 1
@@ -161,13 +158,13 @@
     let (start_value, _, _, _, _) = name_dict.at(str(start)).at(-1)
     if str(end) in name_dict.keys() {
       for (end_value, hold, duration, dwell, trans) in name_dict.at(str(end)) {
-        if hold <= time and time < hold + duration {
+        if hold <= time and time < hold + duration + dwell {
           trans = get_transition(trans)
           time = calc.min(1, calc.max(0, time - hold) / duration)
           return _scale_value(start_value, end_value, trans(time))
         }
       }
-      return start_value // should not happen
+      return start_value // cannot not happen
     } else {
       return start_value
     }
@@ -233,16 +230,7 @@
   let segment = 0
 
   for b in range(1, max_block + 1) {
-    let duration = calc.max(
-      ..variables
-        .values()
-        .map(dict => dict.pairs())
-        .join()
-        .map(pair => {
-          let (bb, (_, ho, du, dw, _)) = pair
-          if bb == str(b) { ho + du + dw } else { 0 }
-        }),
-    )
+    let duration = _get_block_duration_var(variables, b)
 
     let frames = int(calc.round(fps * duration))
     local_frames += frames
@@ -290,22 +278,12 @@
       if not max_block in cut_blocks {
         cut_blocks = cut_blocks + (max_block,)
       }
-
       let total_frames = 0
       let local_frames = 0
       let segment = 0
 
       for b in range(1, max_block + 1) {
-        let duration = calc.max(
-          ..variables
-            .values()
-            .map(dict => dict.pairs())
-            .join()
-            .map(pair => {
-              let (bb, (_, ho, du, dw, _)) = pair
-              if bb == str(b) { ho + du + dw } else { 0 }
-            }),
-        )
+        let duration = _get_block_duration_var(variables, b)
 
         let frames = int(calc.round(fps * duration))
         local_frames += frames
@@ -332,12 +310,12 @@
           segment += 1
         }
       }
-
       _time.update(_ => 0)
       page(body)
     }
   }
 }
+
 
 /// Init animated ratios. Animated ratios start at 0% by default.
 #let init(..args) = context {
