@@ -28,13 +28,16 @@
 }
 
 #let _add_anim(block, hold, duration, dwell, transition, name, value) = {
+  context {
+    if name in _variables.get() {
+      assert(
+        type(value) == type(_variables.get().at(name).at("0").at(0).at(0)),
+        message: "Cannot modify the type of an animated variable.",
+      )
+    }
+  }
   _variables.update(dict => {
     let name_dict = dict.at(name, default: _get_default_dict(type: value))
-    // TODO move assert out of update
-    assert(
-      type(value) == type(name_dict.at("0").at(0).at(0)),
-      message: "Cannot modify the type of an animated variable.",
-    )
     let block_list = name_dict.at(str(block), default: ())
     block_list.push((value, hold, duration, dwell, transition))
     name_dict.insert(str(block), block_list)
@@ -150,21 +153,21 @@
   let mapping(time) = {
     let name_dict = _variables.get().at(name, default: _get_default_dict())
     let end = block
-    // No, it might start in the same block but in the element before (if there is an element before then )
     let start = block - 1
     while not str(start) in name_dict.keys() {
       start -= 1
     }
     let (start_value, _, _, _, _) = name_dict.at(str(start)).at(-1)
+    let start_value_bis = start_value
     if str(end) in name_dict.keys() {
       for (end_value, hold, duration, dwell, trans) in name_dict.at(str(end)) {
         if hold <= time and time < hold + duration + dwell {
           trans = get_transition(trans)
           time = calc.min(1, calc.max(0, time - hold) / duration)
           return _scale_value(start_value, end_value, trans(time))
-        }
+        } else { start_value = end_value }
       }
-      return start_value // cannot not happen
+      return start_value_bis // happen for first part
     } else {
       return start_value
     }

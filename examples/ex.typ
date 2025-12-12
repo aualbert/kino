@@ -6,7 +6,7 @@
 #init(x: 5pt)
 
 #animate(hold: 1, dwell: 1, x: 50pt)
-#then(x: 100pt)
+#then(x: 60pt)
 
 
 #context {
