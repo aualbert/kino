@@ -3,11 +3,13 @@
 
 #show: animation
 
-#init(x: 5pt)
+#init(x: 10pt)
 
-#animate(hold: 1, dwell: 1, x: 50pt)
-#then(x: 60pt)
+#animate(hold: 1, dwell: 1, x: 80pt)
+#meanwhile(duration: 3, y: 60pt)
+#then(x: 30pt)
 
+//#page(width: 10cm)[#show-timeline()]
 
 #context {
   polygon(

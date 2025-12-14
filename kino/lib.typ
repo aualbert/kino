@@ -1,5 +1,3 @@
-// TODO then, do not override, have a list instead.
-
 #import "src/transitions.typ": *
 
 #let _begin = state("begin", false)
@@ -116,26 +114,24 @@
       ..timeline
         .keys()
         .filter(k => k != "builtin_pause_counter")
-        .map(
-          k => {
-            let name_dict = timeline.at(k)
-            (
-              (k,)
-                + range(1, mblock + 1).map(b => {
-                  let total = 0
-                  let res = ()
-                  for e in name_dict.at(str(b), default: ()) {
-                    let (v, ho, du, dw, t) = e
-                    res += (
-                      [#_bar(ho - total)#_bar(du, color: blue)#_bar(dw)],
-                    )
-                    total += ho + du + dw
-                  }
-                  res.join()
-                })
-            )
-          },
-        )
+        .map(k => {
+          let name_dict = timeline.at(k)
+          (
+            (k,)
+              + range(1, mblock + 1).map(b => {
+                let total = 0
+                let res = ()
+                for e in name_dict.at(str(b), default: ()) {
+                  let (v, ho, du, dw, t) = e
+                  res += (
+                    [#_bar(ho - total)#_bar(du, color: blue)#_bar(dw)],
+                  )
+                  total += ho + du + dw
+                }
+                res.join()
+              })
+          )
+        })
         .join(),
     )
   }
@@ -161,15 +157,17 @@
     let start_value_bis = start_value
     if str(end) in name_dict.keys() {
       for (end_value, hold, duration, dwell, trans) in name_dict.at(str(end)) {
-        if hold <= time and time < hold + duration + dwell {
-          trans = get_transition(trans)
-          time = calc.min(1, calc.max(0, time - hold) / duration)
-          return _scale_value(start_value, end_value, trans(time))
-        } else { start_value = end_value }
+        if hold <= time {
+          if time < hold + duration + dwell {
+            trans = get_transition(trans)
+            time = calc.min(1, calc.max(0, time - hold) / duration)
+            return _scale_value(start_value, end_value, trans(time))
+          } else { start_value = end_value }
+        } else { break }
       }
-      return start_value_bis // happen for first part
-    } else {
       return start_value
+    } else {
+      return start_value_bis
     }
   }
   return mapping
