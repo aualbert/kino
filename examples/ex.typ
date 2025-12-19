@@ -9,10 +9,7 @@
 #meanwhile(duration: 3, y: 60pt)
 #then(x: 30pt)
 
-#context {
-  page(width: 10cm)[#_variables.get()]
-}
-//#page(width: 10cm)[#show-timeline()]
+#page(width: 10cm)[#show-timeline()]
 
 #let f(t) = 3 * t
 

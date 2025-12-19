@@ -65,7 +65,9 @@
   ```
   If a variable `x` is neither initialized nor animated, `a("x")` evaluates to 0%. Finally, the function `cut`, intuitively, splits the output in several segments. The exact semantics depends on the output format, see @export.
 
-  #let docs = tidy.parse-module(read("../lib.typ"))
+  #let docs = tidy.parse-module(read("../lib.typ"), scope: (
+    _show_timeline: _show-timeline,
+  ))
   #let (docs1, docs2) = split-module-by-name(docs, (
     "init",
     "a",
@@ -80,7 +82,7 @@
 
   This section describes the different animation primitives. They roughly share the same parameters, therefore we only describe the `animate` primitive in details.
 
-  Behind the scenes, the different calls to animation primitive are converted to a timeline describing the value of animation variables at each time step of the animation, for example:
+  Behind the scenes, the different calls to animation primitive are converted to a timeline describing the value of animation variables at each time step of the animation. The current timeline can be visualized using `show-timeline()`:
 
   #let var = (
     "x": (
@@ -101,7 +103,7 @@
 
   As seen above, a timeline is divided into blocks. Blocks become very useful when coordinating several animation variables. Any call to `animate` creates a new block, but a specific block can also be given as parameter. By default, a cut is inserted between each blocks, see @export.
 
-  Finally, when calling an animation primitive, it is possible to specify how variables are interpolated using the `animation` parameter, see @transitions for more details.
+  Finally, when calling an animation primitive, one can specify how variables are interpolated using the `animation` parameter, see @transitions for more details, and the duration of the animation, in seconds.
 
   #show-module(docs2)
 
@@ -116,3 +118,5 @@
 ]
 
 = Exportation tool<export>
+
+TODO

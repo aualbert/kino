@@ -10,6 +10,9 @@
 
 #let _block = state("block", 1)
 
+#let _current_block = state("current block", 1)
+#let _current_time = state("current time", 0)
+
 #let _get_zero(ty) = {
   if type(ty) == int {
     0
@@ -40,10 +43,6 @@
   }
 }
 
-#let compatible(t1, t2) = {
-  t2 == t1 //or (t2 in (int, float) and t1 in (int, float))
-}
-
 #let _add_anim(block, hold, duration, dwell, transition, name, value) = {
   context {
     if name in _variables.get() {
@@ -51,7 +50,7 @@
       let old_type = type(_variables.get().at(name).at("0").at(0).at(0))
       if new_type == int and old_type == float { value = float(value) } else {
         assert(
-          compatible(old_type, new_type),
+          old_type == new_type,
           message: "Cannot modify the type of an animated variable from "
             + str(old_type)
             + " to "
@@ -163,7 +162,9 @@
 }
 
 #let show-timeline() = context {
-  _show-timeline(_variables.get())
+  if not _begin.get() {
+    _show-timeline(_variables.get())
+  }
 }
 
 #let _scale_value(start, end, t) = {
@@ -369,8 +370,13 @@
   }
 }
 
-/// Pause animation
-#let pause(block: -1, duration: 1) = context {
+/// Pauses the animation in the current block, or at the end of the specified block.
+#let wait(
+  /// -> int
+  block: -1,
+  /// -> second
+  duration: 1,
+) = context {
   if not _begin.get() {
     let my_block = if block < 0 {
       _block.get()
@@ -380,10 +386,25 @@
   }
 }
 
-/// Animate one or several variables.
+/// Animate one or several variables in a new block, or at the end of the specified block.
 /// ```typst
-/// #animate(r:50%, x:3cm)
+/// #animate(x:50%, y:3cm)
+/// #animate(x:20%)
+/// #animate(block:2, y:4cm)
 /// ```
+/// #let var = (
+///   "x": (
+///     "0": ((0, 0, 0, 0, 0),),
+///     "1": ((0, 0, 1, 0, 0),),
+///     "2": ((0, 0, 1, 0, 0),),
+///   ),
+///   "y": (
+///     "0": ((0, 0, 0, 0, 0),),
+///     "1": ((0, 0, 1, 0, 0),),
+///     "2": ((0, 1, 1, 0, 0),),
+///   ),
+/// )
+/// #_show_timeline(var)
 #let animate(
   /// A block identifier to start animation at.
   /// -> int
@@ -413,11 +434,38 @@
   }
 }
 
-/// TODO
+
+/// Animate variables, starting at the same position in the timeline as the latest `animate` call, _if there is no collision_.
+/// ```typst
+/// #animate(x:1)
+/// #then(x:2)
+/// #meanwhile(y:1)
+/// #meanwhile(z:3%)
+/// //#meanwhile(y:2) raise error
+/// ```
+/// #let var = (
+///   "x": (
+///     "0": ((0, 0, 0, 0, 0),),
+///     "1": ((0, 0, 1, 0, 0),(0,1,1,0,0)),
+///   ),
+///   "y": (
+///     "0": ((0, 0, 0, 0, 0),),
+///     "1": ((0, 0, 1, 0, 0),),
+///   ),
+///   "z": (
+///     "0": ((0, 0, 0, 0, 0),),
+///     "1": ((0, 0, 1, 0, 0),),
+///   ),
+/// )
+/// #_show_timeline(var)
 #let meanwhile(
+  /// -> second
   hold: 0,
+  /// -> second
   duration: 1,
+  /// -> second
   dwell: 0,
+  /// -> transition | str
   transition: "linear",
   ..args,
 ) = context {
@@ -433,11 +481,31 @@
   }
 }
 
-/// TODO
+/// Animate variables at the end of the block of the latest call to `animate`.
+/// ```typst
+/// #animate(x:1)
+/// #then(x:2)
+/// #then(y:1)
+/// ```
+/// #let var = (
+///   "x": (
+///     "0": ((0, 0, 0, 0, 0),),
+///     "1": ((0, 0, 1, 0, 0),(0,1,1,0,0)),
+///   ),
+///   "y": (
+///     "0": ((0, 0, 0, 0, 0),),
+///     "1": ((0, 2, 1, 0, 0),),
+///   ),
+/// )
+/// #_show_timeline(var)
 #let then(
+  /// -> second
   hold: 0,
+  /// -> second
   duration: 1,
+  /// -> second
   dwell: 0,
+  /// -> transition | str
   transition: "linear",
   ..args,
 ) = context {

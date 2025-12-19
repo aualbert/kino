@@ -1,6 +1,8 @@
 /// Linear transition
 #let linear(t) = { t }
+/// TODO
 #let quad(t) = { calc.pow(t, 2) }
+/// TODO
 #let sin(t) = { t } // TODO
 
 // TODO add other transitions type
