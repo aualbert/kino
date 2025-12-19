@@ -15,13 +15,13 @@
     0
   } else if type(ty) == float {
     0.0
-  } else if type(ty) in (length, ratio) {
+  } else if type(ty) in (angle, length, ratio) {
     ty * 0%
   } else if type(ty) == array {
     ty.map(_get_zero)
   } else if type(ty) == function {
-    let zero(ty) = _get_zero(t(0))
-    zero
+    let zero = _get_zero(ty(.0))
+    _ => zero
   }
 }
 
@@ -33,7 +33,7 @@
   "builtin_pause_counter": _get_default_dict(),
 ))
 
-/// Terminates the animation. Used in conjonction with the @animation show rule.
+/// Terminates the animation. Mandatory.
 #let finish() = context {
   if not _begin.get() {
     _begin.update(_ => true)
@@ -49,14 +49,16 @@
     if name in _variables.get() {
       let new_type = type(value)
       let old_type = type(_variables.get().at(name).at("0").at(0).at(0))
-      assert(
-        compatible(old_type, new_type),
-        message: "Cannot modify the type of an animated variable from "
-          + str(old_type)
-          + " to "
-          + str(new_type)
-          + ".",
-      )
+      if new_type == int and old_type == float { value = float(value) } else {
+        assert(
+          compatible(old_type, new_type),
+          message: "Cannot modify the type of an animated variable from "
+            + str(old_type)
+            + " to "
+            + str(new_type)
+            + ".",
+        )
+      }
     }
   }
   _variables.update(dict => {
@@ -124,42 +126,40 @@
 )
 
 #let _show-timeline(timeline) = {
-  if not _begin.get() {
-    let mblock = _get_max_block_var(timeline)
-    grid(
-      columns: mblock + 1,
-      align: left + bottom,
-      inset: 3pt,
-      [],
-      grid.vline(stroke: (dash: "dashed")),
-      ..range(1, mblock + 1)
-        .map(b => { ([#b], grid.vline(stroke: (dash: "dashed"))) })
-        .flatten(),
-      grid.hline(),
-      ..timeline
-        .keys()
-        .filter(k => k != "builtin_pause_counter")
-        .map(k => {
-          let name_dict = timeline.at(k)
-          (
-            (k,)
-              + range(1, mblock + 1).map(b => {
-                let total = 0
-                let res = ()
-                for e in name_dict.at(str(b), default: ()) {
-                  let (v, ho, du, dw, t) = e
-                  res += (
-                    [#_bar(ho - total)#_bar(du, color: blue)#_bar(dw)],
-                  )
-                  total += ho + du + dw
-                }
-                res.join()
-              })
-          )
-        })
-        .join(),
-    )
-  }
+  let mblock = _get_max_block_var(timeline)
+  grid(
+    columns: mblock + 1,
+    align: left + bottom,
+    inset: 3pt,
+    [],
+    grid.vline(stroke: (dash: "dashed")),
+    ..range(1, mblock + 1)
+      .map(b => { ([#b], grid.vline(stroke: (dash: "dashed"))) })
+      .flatten(),
+    grid.hline(),
+    ..timeline
+      .keys()
+      .filter(k => k != "builtin_pause_counter")
+      .map(k => {
+        let name_dict = timeline.at(k)
+        (
+          (k,)
+            + range(1, mblock + 1).map(b => {
+              let total = 0
+              let res = ()
+              for e in name_dict.at(str(b), default: ()) {
+                let (v, ho, du, dw, t) = e
+                res += (
+                  [#_bar(ho - total)#_bar(du, color: blue)#_bar(dw)],
+                )
+                total += ho + du + dw
+              }
+              res.join()
+            })
+        )
+      })
+      .join(),
+  )
 }
 
 #let show-timeline() = context {
@@ -171,7 +171,7 @@
 }
 
 #let _get_scaler(ty) = {
-  if type(ty) in (float, ratio, length) {
+  if type(ty) in (float, ratio, length, angle) {
     return _scale_value
   } else if type(ty) == int {
     return (start, end, t) => calc.floor(_scale_value(start, end, t))
@@ -242,10 +242,7 @@
   return mapping
 }
 
-/// Get the value of an animated variable. Can only be used in context as shown below:
-/// ```typst
-/// #context { a("x") }
-/// ```
+/// Evaluates an animation variable in context.
 #let a(
   /// -> str
   name,
@@ -301,12 +298,7 @@
   page(body)
 }
 
-/// The main show rule. The body must contain a call to @finish as shown below:
-/// ```typst
-/// #show: animation
-/// // animation primitives
-/// #finish()
-/// ```
+/// The main show rule. Must be applied before any animation primitive is used. The body must contain a call to @finish.
 #let animation(
   /// -> content
   body,
@@ -368,7 +360,7 @@
 }
 
 
-/// Init animated ratios. Animated ratios start at 0% by default.
+/// Init one or several animation variables.
 #let init(..args) = context {
   if not _begin.get() {
     for (name, value) in args.named() {
@@ -388,8 +380,7 @@
   }
 }
 
-/// TODO
-///
+/// Animate one or several variables.
 /// ```typst
 /// #animate(r:50%, x:3cm)
 /// ```
@@ -409,8 +400,6 @@
   /// A transition name or custom transition.
   /// -> transition | str
   transition: "linear",
-  /// Variables to animate to the given value.
-  /// -> ratio | length
   ..args,
 ) = context {
   if not _begin.get() {

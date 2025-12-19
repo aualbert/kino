@@ -6,7 +6,7 @@
 #show: animation
 
 #init(e: 0.1)
-#animate(duration: 3, e: 2)
+#animate(duration: 3, e: 2.)
 
 #context {
   cetz.canvas({

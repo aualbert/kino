@@ -4,7 +4,7 @@
 
 #show: animation
 
-#init(e: 0)
+#init(e: .0)
 #animate(duration: 3, e: 2 * calc.pi)
 
 #context {
