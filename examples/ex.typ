@@ -1,29 +1,23 @@
 #import "../lib.typ": *
-#set page(width: 100pt, height: 100pt)
+#set page(width: 10cm, height: auto)
 
 #show: animation
 
-#init(x: 10pt)
-
-#animate(hold: 1, dwell: 1, x: 80pt)
-#meanwhile(duration: 3, y: 60pt)
-#then(x: 30pt)
-
-#page(width: 10cm)[#show-timeline()]
-
-#let f(t) = 3 * t
+#animate(x: 1)
+#then(x: 2)
+#then(y: 1)
+#meanwhile(y: 3)
+#animate(x: 2)
+#meanwhile(y: 3)
+#animate(block: 4, x: 1)
+#animate(block: 2, x: 2)
+#then(z: 3)
+#meanwhile(y: 2)
 
 #context {
-  polygon(
-    fill: blue.darken(a("d")),
-    (0cm, 0cm),
-    (a("x"), 0cm),
-    (a("x"), 3cm),
-    (
-      0cm,
-      a("y"),
-    ),
-  )
+  let (_, ho, du, dw, _) = _variables.get().at("x").at("2").at(-1)
 }
+
+#show-timeline()
 
 #finish()

@@ -427,9 +427,20 @@
     let my_block = if block < 0 {
       _block.get()
     } else { block }
+    let my_time = _get_block_duration(my_block)
     for (name, value) in args.named() {
-      _add_anim(my_block, hold, duration, dwell, transition, name, value)
+      _add_anim(
+        my_block,
+        hold + my_time,
+        duration,
+        dwell,
+        transition,
+        name,
+        value,
+      )
     }
+    _current_time.update(_ => my_time)
+    _current_block.update(_ => my_block)
     _block.update(int => { int + 1 })
   }
 }
@@ -470,13 +481,39 @@
   ..args,
 ) = context {
   if not _begin.get() {
-    let my_block = calc.max(1, _block.get() - 1)
+    let my_block = _current_block.get()
+    let my_time = _current_time.get()
     for (name, value) in args.named() {
-      assert(
-        not _has_anim(my_block, name),
-        message: "variable " + name + " is already animated in this block",
+      if name in _variables.get() {
+        let name_dict = _variables.get().at(name)
+        if str(my_block) in name_dict {
+          let (_, ho, du, dw, _) = name_dict.at(str(my_block)).at(-1)
+          let duration = ho + du + dw
+          assert(
+            my_time >= duration,
+            message: "collision in the block "
+              + str(my_block)
+              + " for variable "
+              + name,
+          )
+        }
+      }
+
+
+      // assert(
+      //   not _has_anim(my_block, name),
+      //   message: "variable " + name + " is already animated in this block",
+      // ) // TODO manage conflict better
+      // TODO if have been updated since then
+      _add_anim(
+        my_block,
+        hold + my_time,
+        duration,
+        dwell,
+        transition,
+        name,
+        value,
       )
-      _add_anim(my_block, hold, duration, dwell, transition, name, value)
     }
   }
 }
@@ -510,10 +547,18 @@
   ..args,
 ) = context {
   if not _begin.get() {
-    let my_block = calc.max(1, _block.get() - 1)
-    let my_hold = hold + _get_block_duration(my_block)
+    let my_block = _current_block.get()
+    let my_time = _get_block_duration(my_block)
     for (name, value) in args.named() {
-      _add_anim(my_block, my_hold, duration, dwell, transition, name, value)
+      _add_anim(
+        my_block,
+        hold + my_time,
+        duration,
+        dwell,
+        transition,
+        name,
+        value,
+      )
     }
   }
 }
