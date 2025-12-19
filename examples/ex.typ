@@ -11,6 +11,8 @@
 
 //#page(width: 10cm)[#show-timeline()]
 
+#let f(t) = 3 * t
+
 #context {
   polygon(
     fill: blue.darken(a("d")),

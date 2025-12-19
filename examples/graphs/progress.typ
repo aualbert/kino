@@ -1,0 +1,36 @@
+#import "@preview/lilaq:0.5.0" as lq
+#import "../../kino/lib.typ": *
+#set page(width: auto, height: auto)
+
+#show: animation
+
+#let xs = range(6)
+#let y0 = (8., 6., 4., 5., 8., 6.)
+#let y1 = (4., 5., 3., 4., 2., 1.)
+#let y2 = (1., 1., 2., 3., 2., 1.)
+
+#init(v0: y0)
+#init(v1: y0)
+#init(v2: y0)
+#animate(v0: y1, v1: y1)
+#animate(v1: y2)
+
+#context {
+  lq.diagram(
+    xlim: (0, 5),
+    ylim: (0, 10),
+    xaxis: (ticks: none),
+    yaxis: (ticks: none),
+    grid: none,
+    ..range(3).map(i => {
+      lq.plot(
+        smooth: true,
+        mark: none,
+        xs,
+        a("v" + str(i)),
+      )
+    }),
+  )
+}
+
+#finish()

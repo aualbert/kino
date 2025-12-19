@@ -256,7 +256,8 @@ def handle_video(args):
 
             elif args.cut == "scene":
                 for index, input in enumerate(scenes):
-                    output = f"{root_path}{index+1}.{args.format}"
+                    if total_scenes != 1:
+                        output = f"{root_path}{index+1}.{args.format}"
                     cmd2 = [
                         "ffmpeg",
                         "-y",
@@ -287,12 +288,14 @@ def handle_video(args):
 
                     result = subprocess.run(cmd2, timeout = args.timeout, capture_output=True, text=True, check = True)
                     data = json.loads(result.stdout)
-
-                    ffmpeg_commands = []
+                    data = [d["kino"] for d in data if "kino" in d]
+                    
                     for item in data:
                         output = f"{root_path}{index+1}_{item['segment']}.{args.format}"
                         if total_scenes == 1:
                             output = f"{root_path}{item['segment']}.{args.format}"
+                            if len(data) == 1:
+                                output = f"{root_path}.{args.format}"
                         cmd = [
                             "ffmpeg",
                             "-y",                        
@@ -305,10 +308,9 @@ def handle_video(args):
                             "-r", str(item['fps']),
                             output
                         ]
-                        ffmpeg_commands.append(cmd)
-                    
+                        
                         result = subprocess.run(cmd, timeout = args.timeout, check = True)
-                         
+                        
     except subprocess.TimeoutExpired:
         print(f"Timeout after {args.timeout} seconds.\nhint: timeout can be increased using the --timeout option.")
         return 124
@@ -428,7 +430,8 @@ def handle_revealjs(args):
 
                     result = subprocess.run(cmd2, timeout = args.timeout, capture_output=True, text=True, check = True)
                     data = json.loads(result.stdout)
-
+                    data = [d["kino"] for d in data if "kino" in d]
+                    
                     for item in data:
                         output = os.path.join(tmpdir, f"segment{item['segment']}.mp4")
                         cmd = [

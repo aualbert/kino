@@ -10,8 +10,23 @@
 
 #let _block = state("block", 1)
 
+#let _get_zero(ty) = {
+  if type(ty) == int {
+    0
+  } else if type(ty) == float {
+    0.0
+  } else if type(ty) in (length, ratio) {
+    ty * 0%
+  } else if type(ty) == array {
+    ty.map(_get_zero)
+  } else if type(ty) == function {
+    let zero(ty) = _get_zero(t(0))
+    zero
+  }
+}
+
 #let _get_default_dict(type: 0%) = {
-  ("0": ((type * 0%, 0, 1, 0, "linear"),))
+  ("0": ((_get_zero(type), 0, 0, 0, "linear"),))
 }
 
 #let _variables = state("variables", (
@@ -25,12 +40,22 @@
   }
 }
 
+#let compatible(t1, t2) = {
+  t2 == t1 //or (t2 in (int, float) and t1 in (int, float))
+}
+
 #let _add_anim(block, hold, duration, dwell, transition, name, value) = {
   context {
     if name in _variables.get() {
+      let new_type = type(value)
+      let old_type = type(_variables.get().at(name).at("0").at(0).at(0))
       assert(
-        type(value) == type(_variables.get().at(name).at("0").at(0).at(0)),
-        message: "Cannot modify the type of an animated variable.",
+        compatible(old_type, new_type),
+        message: "Cannot modify the type of an animated variable from "
+          + str(old_type)
+          + " to "
+          + str(new_type)
+          + ".",
       )
     }
   }
@@ -145,32 +170,53 @@
   start + t * (end - start)
 }
 
+#let _get_scaler(ty) = {
+  if type(ty) in (float, ratio, length) {
+    return _scale_value
+  } else if type(ty) == int {
+    return (start, end, t) => calc.floor(_scale_value(start, end, t))
+  } else if type(ty) == array {
+    let scalers = ty.map(_get_scaler)
+    return (start, end, t) => scalers
+      .zip(start, end)
+      .map(i => {
+        let (scaler, s, e) = i
+        scaler(s, e, t)
+      })
+  } else if type(ty) == function {
+    let scaler = _get_scaler(ty(0))
+    return (start, end, t) => (x => scaler(start(x), end(x), t))
+  }
+}
+
 #let _build_mapping(block, name) = {
-  let mapping(time) = {
-    let name_dict = _variables.get().at(name, default: _get_default_dict())
-    let end = block
-    let start = block - 1
-    while not str(start) in name_dict.keys() {
-      start -= 1
-    }
-    let (start_value, _, _, _, _) = name_dict.at(str(start)).at(-1)
-    let start_value_bis = start_value
-    if str(end) in name_dict.keys() {
+  let name_dict = _variables.get().at(name, default: _get_default_dict())
+  let end = block
+  let start = block - 1
+  while not str(start) in name_dict.keys() {
+    start -= 1
+  }
+  let (start_value, _, _, _, _) = name_dict.at(str(start)).at(-1)
+  let scaler = _get_scaler(start_value)
+
+  if str(end) in name_dict.keys() {
+    let mapping(time) = {
+      let start_value_bis = start_value
       for (end_value, hold, duration, dwell, trans) in name_dict.at(str(end)) {
         if hold <= time {
           if time < hold + duration + dwell {
             trans = get_transition(trans)
             time = calc.min(1, calc.max(0, time - hold) / duration)
-            return _scale_value(start_value, end_value, trans(time))
-          } else { start_value = end_value }
+            return scaler(start_value_bis, end_value, trans(time))
+          } else { start_value_bis = end_value }
         } else { break }
       }
       return start_value
-    } else {
-      return start_value_bis
     }
+    return mapping
+  } else {
+    return _ => start_value
   }
-  return mapping
 }
 
 // unused
@@ -238,12 +284,14 @@
 
     if b in cut_blocks {
       metadata((
-        "fps": fps,
-        "duration": duration,
-        "frames": local_frames + 1,
-        "from": total_frames,
-        "segment": segment,
-        "loop": b in loop_blocks,
+        "kino": (
+          "fps": fps,
+          "duration": duration,
+          "frames": local_frames + 1,
+          "from": total_frames,
+          "segment": segment,
+          "loop": b in loop_blocks,
+        ),
       ))
       total_frames += frames
       local_frames = 0
@@ -299,12 +347,14 @@
 
         if b in cut_blocks {
           metadata((
-            "fps": fps,
-            "duration": duration,
-            "frames": local_frames + 1,
-            "from": total_frames,
-            "segment": segment,
-            "loop": b in loop_blocks,
+            "kino": (
+              "fps": fps,
+              "duration": duration,
+              "frames": local_frames + 1,
+              "from": total_frames,
+              "segment": segment,
+              "loop": b in loop_blocks,
+            ),
           ))
           total_frames += frames
           local_frames = 0
