@@ -1,6 +1,6 @@
 #import "@preview/cetz:0.4.0"
 #import "@preview/cetz-plot:0.1.2"
-#import "../../kino/lib.typ": *
+#import "../../lib.typ": *
 #set page(width: auto, height: auto)
 
 #show: animation

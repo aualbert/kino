@@ -1,4 +1,4 @@
-#import "../kino/lib.typ": *
+#import "../lib.typ": *
 #set page(width: 100pt, height: 100pt)
 
 #show: animation

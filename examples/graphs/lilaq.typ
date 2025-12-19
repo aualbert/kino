@@ -1,5 +1,5 @@
 #import "@preview/lilaq:0.5.0" as lq
-#import "../../kino/lib.typ": *
+#import "../../lib.typ": *
 #set page(width: auto, height: auto)
 
 #show: animation
