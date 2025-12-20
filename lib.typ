@@ -9,9 +9,7 @@
 #let _time = state("time", 0)
 
 #let _block = state("block", 1)
-
 #let _current_block = state("current block", 1)
-#let _current_time = state("current time", 0)
 
 #let _get_zero(ty) = {
   if type(ty) == int {
@@ -41,33 +39,6 @@
   if not _begin.get() {
     _begin.update(_ => true)
   }
-}
-
-#let _add_anim(block, hold, duration, dwell, transition, name, value) = {
-  context {
-    if name in _variables.get() {
-      let new_type = type(value)
-      let old_type = type(_variables.get().at(name).at("0").at(0).at(0))
-      if new_type == int and old_type == float { value = float(value) } else {
-        assert(
-          old_type == new_type,
-          message: "Cannot modify the type of an animated variable from "
-            + str(old_type)
-            + " to "
-            + str(new_type)
-            + ".",
-        )
-      }
-    }
-  }
-  _variables.update(dict => {
-    let name_dict = dict.at(name, default: _get_default_dict(type: value))
-    let block_list = name_dict.at(str(block), default: ())
-    block_list.push((value, hold, duration, dwell, transition))
-    name_dict.insert(str(block), block_list)
-    dict.insert(name, name_dict)
-    return dict
-  })
 }
 
 #let _has_anim(block, name) = {
@@ -151,7 +122,7 @@
                 res += (
                   [#_bar(ho - total)#_bar(du, color: blue)#_bar(dw)],
                 )
-                total += ho + du + dw
+                total += ho - total + du + dw
               }
               res.join()
             })
@@ -188,6 +159,65 @@
     let scaler = _get_scaler(ty(0))
     return (start, end, t) => (x => scaler(start(x), end(x), t))
   }
+}
+
+#let _add_anim(
+  block: 1,
+  hold: 0,
+  duration: 1,
+  dwell: 0,
+  transition: "linear",
+  mode: "append",
+  ..args,
+) = {
+  context {
+    let dict = _variables.get()
+    for (name, value) in args.named() {
+      let name_dict = dict.at(name, default: _get_default_dict(type: value))
+      let block_list = name_dict.at(str(block), default: ())
+
+      // Check that values type matches
+      if name in dict {
+        let new_type = type(value)
+        let old_type = type(dict.at(name).at("0").at(0).at(0))
+        if new_type == int and old_type == float { value = float(value) } else {
+          assert(
+            old_type == new_type,
+            message: "Cannot modify the type of an animated variable from "
+              + str(old_type)
+              + " to "
+              + str(new_type)
+              + ".",
+          )
+        }
+      }
+      // check for collision if inserted in place
+      if mode == "place" {
+        assert(
+          block_list.len() == 0,
+          message: "collision in the block "
+            + str(block)
+            + " for variable "
+            + name,
+        )
+      }
+    }
+  }
+  _variables.update(dict => {
+    // Compute hold shift depending on the insertion mode
+    let shift = 0
+    if mode == "append" {
+      shift = _get_block_duration_var(dict, block)
+    }
+    for (name, value) in args.named() {
+      let name_dict = dict.at(name, default: _get_default_dict(type: value))
+      let block_list = name_dict.at(str(block), default: ())
+      block_list.push((value, hold + shift, duration, dwell, transition))
+      name_dict.insert(str(block), block_list)
+      dict.insert(name, name_dict)
+    }
+    return dict
+  })
 }
 
 #let _build_mapping(block, name) = {
@@ -370,23 +400,7 @@
   }
 }
 
-/// Pauses the animation in the current block, or at the end of the specified block.
-#let wait(
-  /// -> int
-  block: -1,
-  /// -> second
-  duration: 1,
-) = context {
-  if not _begin.get() {
-    let my_block = if block < 0 {
-      _block.get()
-    } else { block }
-    _add_anim(my_block, 0, duration, 0, "linear", "builtin_pause_counter", 0%)
-    _block.update(int => { int + 1 })
-  }
-}
-
-/// Animate one or several variables in a new block, or at the end of the specified block.
+/// Animate variables in a new block, or in the specified block. Change the current block.
 /// ```typst
 /// #animate(x:50%, y:3cm)
 /// #animate(x:20%)
@@ -424,29 +438,22 @@
   ..args,
 ) = context {
   if not _begin.get() {
-    let my_block = if block < 0 {
-      _block.get()
-    } else { block }
-    let my_time = _get_block_duration(my_block)
-    for (name, value) in args.named() {
-      _add_anim(
-        my_block,
-        hold + my_time,
-        duration,
-        dwell,
-        transition,
-        name,
-        value,
-      )
-    }
-    _current_time.update(_ => my_time)
+    let my_block = if block < 0 { _block.get() } else { block }
     _current_block.update(_ => my_block)
-    _block.update(int => { int + 1 })
+    _add_anim(
+      block: my_block,
+      hold: hold,
+      duration: duration,
+      dwell: dwell,
+      transition: transition,
+      ..args,
+    )
+    _block.update(b => { if block < 0 { b + 1 } else { b } })
   }
 }
 
 
-/// Animate variables, starting at the same position in the timeline as the latest `animate` call, _if there is no collision_.
+/// Animate variables at the start of the current block, _if there is no collision_.
 /// ```typst
 /// #animate(x:1)
 /// #then(x:2)
@@ -482,43 +489,19 @@
 ) = context {
   if not _begin.get() {
     let my_block = _current_block.get()
-    let my_time = _current_time.get()
-    for (name, value) in args.named() {
-      if name in _variables.get() {
-        let name_dict = _variables.get().at(name)
-        if str(my_block) in name_dict {
-          let (_, ho, du, dw, _) = name_dict.at(str(my_block)).at(-1)
-          let duration = ho + du + dw
-          assert(
-            my_time >= duration,
-            message: "collision in the block "
-              + str(my_block)
-              + " for variable "
-              + name,
-          )
-        }
-      }
-
-
-      // assert(
-      //   not _has_anim(my_block, name),
-      //   message: "variable " + name + " is already animated in this block",
-      // ) // TODO manage conflict better
-      // TODO if have been updated since then
-      _add_anim(
-        my_block,
-        hold + my_time,
-        duration,
-        dwell,
-        transition,
-        name,
-        value,
-      )
-    }
+    _add_anim(
+      block: my_block,
+      hold: hold,
+      duration: duration,
+      dwell: dwell,
+      transition: transition,
+      mode: "place",
+      ..args,
+    )
   }
 }
 
-/// Animate variables at the end of the block of the latest call to `animate`.
+/// Animate variables in the current block.
 /// ```typst
 /// #animate(x:1)
 /// #then(x:2)
@@ -548,30 +531,45 @@
 ) = context {
   if not _begin.get() {
     let my_block = _current_block.get()
-    let my_time = _get_block_duration(my_block)
-    for (name, value) in args.named() {
-      _add_anim(
-        my_block,
-        hold + my_time,
-        duration,
-        dwell,
-        transition,
-        name,
-        value,
-      )
-    }
+    _add_anim(
+      block: my_block,
+      hold: hold,
+      duration: duration,
+      dwell: dwell,
+      transition: transition,
+      ..args,
+    )
   }
 }
 
-/// Cut the animation into two segments.\
-///  The post-cut segment can be cut again.
+/// Add waiting time in current or specified block.
+#let wait(
+  /// -> int
+  block: -1,
+  /// -> second
+  duration: 1,
+) = context {
+  if not _begin.get() {
+    let my_block = if block < 0 { _current_block.get() } else { block }
+    _add_anim(
+      my_block,
+      0,
+      duration,
+      0,
+      "linear",
+      builtin_pause_counter: 0%,
+    )
+  }
+}
+
+/// Add a cut at the end of the current block.
 #let cut(
   /// Whether the pre-cut segment should loop (revealjs only)
   /// -> bool
   loop: false,
 ) = context {
   if not _begin.get() {
-    let block = calc.max(0, _block.get() - 1)
+    let block = _current_block.get()
     _cut_blocks.update(array => array + (block,))
     if loop { _loop_blocks.update(array => array + (block,)) }
   }
