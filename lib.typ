@@ -161,6 +161,28 @@
   }
 }
 
+#let check_types((old, new)) = {
+  let old_type = type(old)
+  let new_type = type(new)
+  if old_type != float and new_type != int {
+    assert(
+      old_type == new_type,
+      message: "Cannot modify types of animated variables, "
+        + " from "
+        + str(old_type)
+        + " to "
+        + str(new_type)
+        + ".",
+    )
+  }
+  if old_type == array {
+    old.zip(new).map(check_types)
+  }
+  if old_type == function {
+    check_types((old(0), new(0)))
+  }
+}
+
 #let _add_anim(
   block: 1,
   hold: 0,
@@ -174,22 +196,10 @@
     let dict = _variables.get()
     for (name, value) in args.named() {
       let name_dict = dict.at(name, default: _get_default_dict(type: value))
-      let block_list = name_dict.at(str(block), default: ())
 
       // Check that values type matches
       if name in dict {
-        let new_type = type(value)
-        let old_type = type(dict.at(name).at("0").at(0).at(0))
-        if new_type == int and old_type == float { value = float(value) } else {
-          assert(
-            old_type == new_type,
-            message: "Cannot modify the type of an animated variable from "
-              + str(old_type)
-              + " to "
-              + str(new_type)
-              + ".",
-          )
-        }
+        check_types((name_dict.at("0").at(0).at(0), value))
       }
       // check for collision if inserted in place
       if mode == "place" {
@@ -228,7 +238,7 @@
     start -= 1
   }
   let (start_value, _, _, _, _) = name_dict.at(str(start)).at(-1)
-  let scaler = _get_scaler(start_value)
+  let scaler = _get_scaler(name_dict.at("0").at(0).at(0))
 
   if str(end) in name_dict.keys() {
     let mapping(time) = {

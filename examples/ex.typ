@@ -3,19 +3,9 @@
 
 #show: animation
 
-#animate(duration: 2, x: 1)
-#then(y: 2)
-#wait()
-#then(y: 2)
-#animate(block: 1, x: 1)
-#animate(x: 2)
-#meanwhile(y: 3)
-#then(y: 2)
-#then(y: 2)
-#cut()
-#cut()
-#animate(duration: 2, block: 1, x: 1)
-#then(z: 3)
+#animate(x: (1, 1))
+#then(x: (2, 2))
+
 
 // #animate(block: 4, x: 1)
 // #animate(block: 2, x: 2)

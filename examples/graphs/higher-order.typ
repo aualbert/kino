@@ -5,7 +5,7 @@
 #show: animation
 
 #let f0 = x => (y => x * y)
-#let f1 = x => (y => f0(x)(y) * x / (1 + calc.pow(y, 2)))
+#let f1 = x => (y => -x * y)
 #init(f: f0)
 #animate(duration: 5, f: f1)
 
