@@ -394,9 +394,7 @@
 /// Init one or several animation variables.
 #let init(..args) = context {
   if not _begin.get() {
-    for (name, value) in args.named() {
-      _add_anim(0, 0, 1, 0, "linear", name, value)
-    }
+    _add_anim(block: 0, ..args)
   }
 }
 
@@ -552,11 +550,8 @@
   if not _begin.get() {
     let my_block = if block < 0 { _current_block.get() } else { block }
     _add_anim(
-      my_block,
-      0,
-      duration,
-      0,
-      "linear",
+      block: my_block,
+      duration: duration,
       builtin_pause_counter: 0%,
     )
   }

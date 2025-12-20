@@ -13,7 +13,7 @@
 #init(v1: y0)
 #init(v2: y0)
 #animate(v0: y1, v1: y1)
-#animate(v1: y2)
+#animate(v0: y2)
 
 #context {
   lq.diagram(
