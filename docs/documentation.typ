@@ -31,7 +31,7 @@
 
   = Structure of an animation<structure>
 
-  This section describe the basic structure of an animation, in particular the `animation` show rule and the functions `init`, `a`, `cut` and `finish`.
+  This section describe the basic structure of an animation, in particular the `animation` show rule and the functions `a`, `cut` and `finish`.
 
   An animation is a typst file with the following structure:
   ```typst
@@ -39,7 +39,7 @@
   // animation primitives & content
   #finish()
   ```
-  Variables can be animated using animation primitives, initialized using `init` and their value accessed using `a`. The type of an animation variable cannot change during an animations. Supported types are `int`, `float`, `ratio`, `angle`, `array` of `function`.
+  Variables can be animated using animation primitives (e.g., `animate`), initialized using `init`, and their value accessed using `a`. The type of an animation variable cannot change during an animations. Supported types are `int`, `float`, `ratio`, `angle`, `array` of `function`.
   The size of an array and the types of its elements must be fixed. The functions must be defined at $0$, and the type of its image cannot change, e.g.
   ```typst
   #init(a: 0)
@@ -65,18 +65,11 @@
   ```
   If a variable `x` is neither initialized nor animated, `a("x")` evaluates to 0%. Finally, the function `cut`, intuitively, splits the output in several segments. The exact semantics depends on the output format, see @export.
 
-  #let docs = tidy.parse-module(read("../lib.typ"), scope: (
+  #let docs = tidy.parse-module(read("../src/animation.typ"), scope: (
     _show_timeline: _show-timeline,
   ))
-  #let (docs1, docs2) = split-module-by-name(docs, (
-    "init",
-    "a",
-    "cut",
-    "finish",
-    "animation",
-  ))
 
-  #show-module(docs1)
+  #show-module(docs)
 
   = Animation primitives<primitives>
 
@@ -105,7 +98,10 @@
 
   Finally, when calling an animation primitive, one can specify how variables are interpolated using the `animation` parameter, see @transitions for more details, and the duration of the animation, in seconds.
 
-  #show-module(docs2)
+  #let docs = tidy.parse-module(read("../src/primitives.typ"), scope: (
+    _show_timeline: _show-timeline,
+  ))
+  #show-module(docs)
 
   = Transitions<transitions>
 
@@ -115,8 +111,8 @@
   #let docs = tidy.parse-module(read("../src/transitions.typ"))
   #show-module(docs)
 
+  = Exportation tool<export>
+
+  TODO
+
 ]
-
-= Exportation tool<export>
-
-TODO

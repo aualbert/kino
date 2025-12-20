@@ -1,4 +1,4 @@
-#import "../kino/lib.typ": *
+#import "../lib.typ": *
 #set page(width: 250pt, height: 75pt)
 
 
