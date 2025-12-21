@@ -17,6 +17,7 @@
     let dict = timeline.get()
     for (name, value) in args.named() {
       let name_dict = dict.at(name, default: get_default_dict(type: value))
+      let block_list = name_dict.at(str(block), default: ())
 
       // Check that values type matches
       if name in dict {

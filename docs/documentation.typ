@@ -106,7 +106,7 @@
   = Transitions<transitions>
 
   This section describes the built-in transitions used by the animation primitives. A transition is a mathematical function $[0,1] -> [0,1]$.
-  Wherever a built-in transition name is expected, a custom transition can be given instead.
+  Wherever a built-in transition name is expected, a custom transition can be given instead. In addition, transitions can be concatenated using `concat`.
 
   #let docs = tidy.parse-module(read("../src/transitions.typ"))
   #show-module(docs)
