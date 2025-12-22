@@ -120,20 +120,35 @@
   - `typst`
   For convenience, a nix flake is also provided. The script can be used to export animations to static slides, videos or revealjs presentations. Consider the syntax  of the program kino.py in @cmdsyntax. We describe here the different arguments.
 
-  - `INPUT` The input file, either a single scene, i.e., a typst file,  or a list of scenes to be played in order, i.e., a toml file with the following syntax:
+  - `INPUT` Input file, either a single scene, i.e., a typst file,  or a list of scenes to be played in order, i.e., a toml file with the following syntax:
   ```toml
   scenes = ["scene1.typ", ...]
   ```
-
   #colbreak()
-  - `ROOT` The root of the project, passed to `typst`.
+  - `h` Displays help.
+  - `ROOT` Root of the project, passed to `typst`.
   - `TIMEOUT` Timeout for each operation (`typst` or `ffmpeg`)
+
+  The `OUTPUT` can then be one of `video`, `revealjs`, or `slides`. Using the `slides` option, a pdf without animations is produced. Using `video`, any common video format can be used. Finally, using `revealjs`, a reveal.js presentation is outputed, as a single html file with embeded videos. A valid reveal.js installation is still required.
+  We now describe option-specific arguments.
+
+  == Video and reveal.js export
+
+  The following options are exclusive to video and reveal.js export.
+
+  - `CUT` When to cut. Cut animations produces multiples videos or steps in revealjs presentations. Manual `cut()` are never overrides. Can be `none` (no additional cuts besides `cut()`), `scene` (between each scenes when using a `.toml` as input), or `all` (between each scenes and each blocks).
+  - `FPS` Frame per seconds. Does not overrides the parameters of the `animation` show rule.
+  - `PPI` Pixel per inches.
 
   == Video export
 
+  - `FORMAT` Format of the output video.
+
   == Reveal.js export
 
-  == Slides export
+  - `TITLE` Title displayed in browser.
+  - `--progress` Enables a progress bar.
+  - `TEMPLATE` A custom reveal.js template, see for example the default template at `bin/revealjs.html`.
 ]
 \
 
