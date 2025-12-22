@@ -140,7 +140,7 @@ Examples:
     revealjs_parser.add_argument(
         "--template",
         type=str,
-        default="revealjs.html",
+        default="bin/revealjs.html",
         help="revealjs template"
     )
 
@@ -330,6 +330,7 @@ def handle_revealjs(args):
     assert_installed("typst")
     assert_installed("ffmpeg")
 
+    scenes = []
 
     dir_path = os.path.dirname(args.input)
     root_path, ext = os.path.splitext(args.input)

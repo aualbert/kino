@@ -100,6 +100,7 @@
 #let animation(
   /// -> content
   body,
+  /// Frame per second of animation. Overrides command line parameters.
   /// -> int
   fps: -1,
 ) = {

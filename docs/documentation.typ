@@ -111,8 +111,46 @@
   #let docs = tidy.parse-module(read("../src/transitions.typ"))
   #show-module(docs)
 
-  = Exportation tool<export>
+  = Export tool<export>
 
-  TODO
+  This package can be used alongside the python script, kino.py, found at https://github.com/aualbert/kino. The requirements are
+  - `python3`
+  - `pypdf`
+  - `ffmpeg`
+  - `typst`
+  For convenience, a nix flake is also provided. The script can be used to export animations to static slides, videos or revealjs presentations. Consider the syntax  of the program kino.py in @cmdsyntax. We describe here the different arguments.
 
+  - `INPUT` The input file, either a single scene, i.e., a typst file,  or a list of scenes to be played in order, i.e., a toml file with the following syntax:
+  ```toml
+  scenes = ["scene1.typ", ...]
+  ```
+
+  #colbreak()
+  - `ROOT` The root of the project, passed to `typst`.
+  - `TIMEOUT` Timeout for each operation (`typst` or `ffmpeg`)
+
+  == Video export
+
+  == Reveal.js export
+
+  == Slides export
 ]
+\
+
+#figure(caption: "Command-line syntax of kino.py")[
+  #set align(left)
+  #set text(
+    font: "DejaVu Sans Mono",
+    size: 9.3pt,
+    tracking: -.1pt,
+    weight: 500,
+  )
+  kino.py [-h] #h(2.59cm) INPUT {#text(blue)[video]|#text(green)[revealjs]|#text(red)[slides]} [--cut {none|scene|all}]
+  \ #h(1.55cm) [--root ROOT] #h(6.865cm) [--fps FPS]
+  \ #h(1.55cm) [--timeout TIMEOUT] #h(5.7cm) [--ppi PPI]
+  \ #h(10.94cm) [--format FORMAT]
+  \ #h(10.94cm) [--title TITLE]
+  \ #h(10.94cm) [--progress]
+  \ #h(10.94cm) [--template TEMPLATE]
+  \
+]<cmdsyntax>
