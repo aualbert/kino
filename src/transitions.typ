@@ -10,7 +10,7 @@
 /// Quartic transition (power of four)
 #let quart(t) = calc.pow(t, 4)
 
-/// Sinus transition
+/// Sine transition
 #let sin(t) = 1 - calc.cos(t * calc.pi / 2)
 
 /// Circular transition (square root)

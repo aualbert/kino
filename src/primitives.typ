@@ -3,7 +3,7 @@
 )
 #import "utils.typ": check_types, get_block_duration, get_default_dict
 
-// main function to add animation to the main timeline
+// Main function to add animation to the main timeline
 #let add_anim(
   block: 1,
   hold: 0,
@@ -19,11 +19,11 @@
       let name_dict = dict.at(name, default: get_default_dict(type: value))
       let block_list = name_dict.at(str(block), default: ())
 
-      // Check that values type matches
+      // Check that value types match
       if name in dict {
         check_types((name_dict.at("0").at(0).at(0), value))
       }
-      // check for collision if inserted in place
+      // Check for collision if inserted in place
       if mode == "place" {
         assert(
           block_list.len() == 0,
@@ -52,14 +52,14 @@
   })
 }
 
-/// Init one or several animation variables.
+/// Initialize one or several animation variables.
 #let init(..args) = context {
   if not begin.get() {
     add_anim(block: 0, ..args)
   }
 }
 
-/// Animate variables in a new block, or in the specified block. Change the current block.
+/// Animate variables in a new block, or in the specified block. Changes the current block.
 /// ```typst
 /// #animate(x:50%, y:3cm)
 /// #animate(x:20%)
@@ -118,7 +118,7 @@
 /// #then(x:2)
 /// #meanwhile(y:1)
 /// #meanwhile(z:3%)
-/// //#meanwhile(y:2) raise error
+/// //#meanwhile(y:2) raises an error
 /// ```
 /// #let var = (
 ///   "x": (
@@ -201,7 +201,7 @@
   }
 }
 
-/// Add waiting time in current or specified block.
+/// Add waiting time in the current or specified block.
 #let wait(
   /// -> int
   block: -1,

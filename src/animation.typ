@@ -1,4 +1,4 @@
-#import "states.typ": begin, cut_blocks, loop_blocks, time, time_block, timeline
+#import "states.typ": begin, current_block, cut_blocks, loop_blocks, time, time_block, timeline
 #import "utils.typ": get_block_duration, get_default_dict, get_scaler
 #import "transitions.typ": get_transition
 
@@ -9,7 +9,7 @@
   }
 }
 
-// main function for computing `a`("x")
+// Main function for computing `a`("x")
 #let build_mapping(block, name) = {
   let name_dict = timeline.get().at(name, default: get_default_dict())
   let end = block
@@ -100,7 +100,7 @@
 #let animation(
   /// -> content
   body,
-  /// Frame per second of animation. Overrides command line parameters.
+  /// Frames per second of animation. Overrides command line parameters.
   /// -> int
   fps: -1,
 ) = {
