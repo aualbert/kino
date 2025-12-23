@@ -2,23 +2,23 @@
 
 [Kino](https://github.com/aualbert/kino) is an easy-to-use, proof of concept package for creating animations in pure Typst. Kino comes with a companion script [kino.py](https://github.com/aualbert/kino/blob/main/bin/kino.py) for exporting to videos, slideshows, or reveal.js presentations. See the [manual](docs/manual.pdf).
 
-## Example
+## Examples
 
 <table>
 <tr>
   <td>
-    <a href="examples/graphs/arrays.typ.typ">
-      <img src="examples/graphs/arrays.webm" width="250px">
+    <a href="examples/graphs/arrays.typ">
+      <video src="examples/graphs/arrays.webm" width="250px">
     </a>
   </td>
   <td>
     <a href="examples/graphs/lilaq.typ">
-      <img src="examples/graphs/lilaq.webm" width="250px">
+      <video src="examples/graphs/lilaq.webm" width="250px">
     </a>
   </td>
   <td>
     <a href="examples/countdown.typ.typ">
-      <img src="examples/countdown.webm" width="250px">
+      <video src="examples/countdown.webm" width="250px">
     </a>
   </td>
 </tr>
