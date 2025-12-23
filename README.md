@@ -30,7 +30,8 @@ To use the Kino package, simply add the following code to your document:
 ```typ
 #import "@preview/kino:0.1.0": *
 ```
-The companion python script [kino.py](https://github.com/aualbert/kino/blob/main/bin/kino.py) can be downloaded from the homepage. It requires `python3, pypdf, ffmpeg` and `typst`. A flake is also provided for nix users.
+The companion python script [kino.py](https://github.com/aualbert/kino/blob/main/bin/kino.py) can be downloaded from the homepage. It requires python3, pypdf, ffmpeg and typst. A flake is also provided for nix users.
+To use reveal.js exports, an installation of reveal.js is also required. 
 
 ## Quick start
 
