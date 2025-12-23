@@ -8,4 +8,4 @@ description = "A proof of concept package for creating animations."
 repository = "https://github.com/aualbert/kino"
 keywords = ["animation", "video", "slide", "slides", "lecture", "manim", "beamer", "ffmpeg", "talk"]
 categories = ["presentation", "scripting", "fun"]
-exclude = [ "docs", "docs/documentation.pdf", "examples/*"]
+exclude = [ "docs", "examples"]
