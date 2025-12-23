@@ -2,7 +2,6 @@
 *.jpg
 *.png
 *.mp4
-*.webm
 *.html
 !revealjs.html
 reveal.js-master/

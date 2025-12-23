@@ -1,6 +1,7 @@
 #import "@preview/lilaq:0.5.0" as lq
 #import "../../lib.typ": *
-#set page(width: auto, height: auto)
+#set page(width: 8cm, height: 8cm)
+#set align(center + horizon)
 
 #show: animation
 

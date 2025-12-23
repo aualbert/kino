@@ -4,7 +4,25 @@
 
 ## Example
 
-TODO
+<table>
+<tr>
+  <td>
+    <a href="examples/graphs/arrays.typ.typ">
+      <img src="examples/graphs/arrays.webm" width="250px">
+    </a>
+  </td>
+  <td>
+    <a href="examples/graphs/lilaq.typ">
+      <img src="examples/graphs/lilaq.webm" width="250px">
+    </a>
+  </td>
+  <td>
+    <a href="examples/countdown.typ.typ">
+      <img src="examples/countdown.webm" width="250px">
+    </a>
+  </td>
+</tr>
+</table>
 
 ## Installation
 
@@ -61,5 +79,6 @@ For an in-depth introduction, including
 - supported types
 - advanced command-line options 
 - debugging tools
+
 please consult the [manual](docs/manual.pdf).
 

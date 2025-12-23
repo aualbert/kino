@@ -1,14 +1,14 @@
 #import "../lib.typ": *
-#set page(width: 250pt, height: 75pt)
+#set page(width: 5cm, height: 5cm)
 
 
 #let planet(sym, distance, period, color) = {
   ratio => {
     let angle = 360deg * ratio * 1000 / period
     place(
-      horizon,
-      dx: 10pt + page.width * 0.9 * distance * calc.cos(angle),
-      dy: page.width * 0.9 * distance * calc.sin(angle),
+      center + horizon,
+      dx: 2.5 * page.width * distance * calc.cos(angle),
+      dy: 2.5 * page.width * distance * calc.sin(angle),
       text(fill: color)[#sym],
     )
   }
@@ -25,18 +25,18 @@
 
 #show: animation
 
-#animate(duration: 10, t: 100%)
+#animate(duration: 5, t: 30%)
 
 #context {
-  place(horizon, dx: 10pt, $dot.c$)
+  place(center + horizon, $dot.o$)
   mercury(a("t"))
   venus(a("t"))
   earth(a("t"))
   mars(a("t"))
   jupiter(a("t"))
-  saturn(a("t"))
-  uranus(a("t"))
-  neptune(a("t"))
+  // saturn(a("t"))
+  // uranus(a("t"))
+  // neptune(a("t"))
 }
 
 #finish()

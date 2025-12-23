@@ -1,11 +1,12 @@
 #import "@preview/lilaq:0.5.0" as lq
 #import "../../lib.typ": *
-#set page(width: auto, height: auto)
+#set page(width: 7cm, height: 7cm)
+#set align(center + horizon)
 
 #show: animation
 
 #let xs = range(6)
-#let y0 = (8., 6., 4., 5., 8., 6.)
+#let y0 = (8., 6., 4., 5., 3., 6.)
 #let y1 = (4, 5, 3, 4, 2, 1)
 #let y2 = (1, 1, 2, 3, 2, 0)
 
