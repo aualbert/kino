@@ -1,4 +1,6 @@
-#import "states.typ": begin, current_block, cut_blocks, loop_blocks, time, time_block, timeline
+#import "states.typ": (
+  begin, current_block, cut_blocks, loop_blocks, time, time_block, timeline,
+)
 #import "utils.typ": get_block_duration, get_default_dict, get_scaler
 #import "transitions.typ": get_transition
 

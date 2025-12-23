@@ -8,17 +8,17 @@
 <tr>
   <td>
     <a href="examples/graphs/arrays.typ">
-      <video src="examples/graphs/arrays.webm" width="250px">
+      <img src="examples/graphs/arrays.gif" width="250px">
     </a>
   </td>
   <td>
     <a href="examples/graphs/lilaq.typ">
-      <video src="examples/graphs/lilaq.webm" width="250px">
+      <img src="examples/graphs/lilaq.gif" width="250px">
     </a>
   </td>
   <td>
     <a href="examples/countdown.typ.typ">
-      <video src="examples/countdown.webm" width="250px">
+      <img src="examples/countdown.gif" width="250px">
     </a>
   </td>
 </tr>

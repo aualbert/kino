@@ -19,6 +19,7 @@
             python3Packages.pypdf
             ruff
             mpv
+            gifski
           ];
         };
       });

@@ -57,7 +57,7 @@
     )
   }
   if old_type == array {
-    old.zip(new).map(check_types)
+    let _ = old.zip(new).map(check_types)
   }
   if old_type == function {
     check_types((old(0), new(0)))
