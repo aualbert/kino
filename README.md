@@ -1,6 +1,6 @@
 # Kino
 
-[Kino](https://github.com/aualbert/kino) is an easy-to-use, proof of concept package for creating animations in pure Typst. Kino comes with a companion script [kino.py](https://github.com/aualbert/kino/blob/main/bin/kino.py) for exporting to videos, slideshows, or reveal.js presentations. See the [manual](docs/manual.pdf).
+[Kino](https://github.com/aualbert/kino) is an easy-to-use, proof of concept package for creating animations in pure Typst. Kino comes with a companion script [kino.py](https://github.com/aualbert/kino/blob/main/bin/kino.py) for exporting to videos, slideshows, or reveal.js presentations. See the [manual](docs/manual.pdf) and the [examples](https://github.com/aualbert/kino/blob/main/examples).
 
 ## Examples
 
